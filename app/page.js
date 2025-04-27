@@ -1,7 +1,88 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { sendOTP, verifyOTP } from "./services/api";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState("");
+  const [whatsappUpdates, setWhatsappUpdates] = useState(false);
+
+  // Validate phone number (10-15 digits)
+  const isValidPhone = (phone) => {
+    return /^\d{10,15}$/.test(phone);
+  };
+
+  // Handle send OTP
+  const handleSendOTP = async () => {
+    if (!isValidPhone(phoneNumber)) {
+      setError("Please enter a valid 10-15 digit phone number");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await sendOTP(phoneNumber);
+
+      if (data.status) {
+        setOtpSent(true);
+        // Don't prefill OTP even if available in response
+      } else {
+        setError(data.message || "Failed to send OTP. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle OTP verification
+  const handleContinue = async () => {
+    if (!otp || otp.trim().length === 0) {
+      setError("Please enter the OTP");
+      return;
+    }
+
+    setVerifying(true);
+    setError("");
+
+    try {
+      const data = await verifyOTP(phoneNumber, otp);
+
+      if (data.status) {
+        // OTP verification successful
+        // Redirect to the next step or dashboard
+        router.push("/onboarding"); // Adjust the route as needed
+      } else {
+        setError(data.message || "Invalid OTP. Please try again.");
+      }
+    } catch (err) {
+      setError("Failed to verify OTP. Please try again.");
+      console.error(err);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Handle resend OTP
+  const handleResendOTP = async () => {
+    setOtp("");
+    setOtpSent(false);
+    await handleSendOTP();
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
       {/* Left Section - Login Form */}
@@ -12,7 +93,7 @@ export default function Home() {
           </div>
           
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-black">Welcome to SellOnAgora</h2>
+            <h2 className="text-2xl font-semibold text-black">Welcome to Agora Market</h2>
             <p className="text-gray-600 mt-1">Create your account to start selling</p>
           </div>
 
@@ -23,20 +104,46 @@ export default function Home() {
                   type="text" 
                   placeholder="Enter Mobile Number" 
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  disabled={otpSent || loading}
                 />
-                <button className="absolute right-0 top-0 h-full px-4 bg-[#6800cd] text-white rounded-r-md font-medium hover:bg-[#5400a3] transition-colors">
-                  Send OTP
+                <button 
+                  className={`absolute right-0 top-0 h-full px-4 ${
+                    loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+                  } text-white rounded-r-md font-medium transition-colors`}
+                  onClick={handleSendOTP}
+                  disabled={!isValidPhone(phoneNumber) || loading || otpSent}
+                >
+                  {loading ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
                 </button>
               </div>
-              <p className="text-red-500 text-sm mt-1">This field is required.</p>
+              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+              {!error && !isValidPhone(phoneNumber) && phoneNumber.length > 0 && (
+                <p className="text-red-500 text-sm mt-1">Please enter a valid phone number (10-15 digits)</p>
+              )}
             </div>
 
             <div>
-              <input 
-                type="text" 
-                placeholder="Enter OTP" 
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
-              />
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Enter OTP" 
+                  className={`w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50' : ''}`}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  disabled={!otpSent || loading}
+                />
+                {otpSent && (
+                  <button 
+                    className="text-[#6800cd] text-sm font-medium absolute right-3 top-1/2 transform -translate-y-1/2"
+                    onClick={handleResendOTP}
+                    disabled={loading || verifying}
+                  >
+                    Resend
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center">
@@ -44,14 +151,22 @@ export default function Home() {
                 type="checkbox" 
                 id="whatsapp-updates" 
                 className="h-4 w-4 text-[#6800cd] focus:ring-[#6800cd] border-gray-300 rounded"
+                checked={whatsappUpdates}
+                onChange={(e) => setWhatsappUpdates(e.target.checked)}
               />
               <label htmlFor="whatsapp-updates" className="ml-2 block text-sm text-gray-700">
                 I want to receive important updates on WhatsApp
               </label>
             </div>
 
-            <button className="w-full p-3 bg-[#6800cd] text-white rounded-md font-medium hover:bg-[#5400a3] transition-colors">
-              Create Account
+            <button 
+              className={`w-full p-3 ${
+                otpSent && otp.length > 0 ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+              } text-white rounded-md font-medium transition-colors`}
+              onClick={handleContinue}
+              disabled={!otpSent || otp.length === 0 || verifying}
+            >
+              {verifying ? 'Verifying...' : 'Continue'}
             </button>
 
             <p className="text-xs text-center text-gray-600">
@@ -61,13 +176,6 @@ export default function Home() {
               <Link href="#" className="text-[#6800cd]">Privacy Policy</Link>
             </p>
           </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-700">
-              Already a user?{" "}
-              <Link href="#" className="text-[#6800cd] font-medium">Login</Link>
-            </p>
-          </div>
         </div>
       </div>
 
@@ -75,7 +183,7 @@ export default function Home() {
       <div className="w-full md:w-1/2 bg-gray-50 p-6 md:p-12 flex flex-col justify-center">
         <div className="max-w-lg mx-auto">
           <h2 className="text-xl md:text-2xl font-semibold text-black mb-8">
-            Grow your business faster by selling on SellOnAgora
+            Grow your business faster by selling on Agora Market
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
