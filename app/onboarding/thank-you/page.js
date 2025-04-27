@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function ThankYouPage() {
   const router = useRouter();
+  const [countdown, setCountdown] = useState(3);
   
   useEffect(() => {
     // Check if user arrived here legitimately
@@ -15,6 +16,21 @@ export default function ThankYouPage() {
       router.push('/onboarding');
       return;
     }
+    
+    // Auto-redirect to store-manage after 3 seconds
+    const timer = setTimeout(() => {
+      router.push('/store-manage');
+    }, 3000);
+    
+    // Countdown timer
+    const interval = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [router]);
 
   return (
@@ -29,7 +45,8 @@ export default function ThankYouPage() {
         </div>
         
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Onboarding Complete!</h1>
-        <p className="text-sm text-gray-600 mb-6">Thank you for joining Agora Market. Your seller account is now being set up.</p>
+        <p className="text-sm text-gray-600 mb-2">Thank you for joining Agora Market. Your seller account is now being set up.</p>
+        <p className="text-xs text-purple-600 font-medium mb-6">Redirecting to dashboard in {countdown} seconds...</p>
         
         <div className="bg-[#f5eeff] rounded-lg p-4 mb-6">
           <h2 className="text-sm font-medium text-gray-800 mb-2">What happens next?</h2>

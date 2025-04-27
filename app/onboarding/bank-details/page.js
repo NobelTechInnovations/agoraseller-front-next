@@ -9,15 +9,13 @@ import OnboardingSteps from "../../components/OnboardingSteps";
 
 export default function BankDetailsPage() {
   const router = useRouter();
-  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [confirmAccountNumber, setConfirmAccountNumber] = useState("");
-  const [accountHolderName, setAccountHolderName] = useState("");
-  const [branchName, setBranchName] = useState("");
   const [ifscCode, setIfscCode] = useState("");
-  const [isPrimary, setIsPrimary] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [bankName, setBankName] = useState("");
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
     // Check if token exists and is valid
@@ -40,38 +38,35 @@ export default function BankDetailsPage() {
       localStorage.removeItem('sellerAuth');
       router.push('/onboarding');
     }
-
-    // Prevent going back by manipulating browser history
-    window.history.pushState(null, '', window.location.href);
-    const preventGoingBack = () => {
-      window.history.pushState(null, '', window.location.href);
-    };
-    
-    window.addEventListener('popstate', preventGoingBack);
-    
-    return () => {
-      window.removeEventListener('popstate', preventGoingBack);
-    };
   }, [router]);
-
+  
   const validateForm = () => {
     const newErrors = {};
     
-    if (!bankName.trim()) newErrors.bankName = "Bank name is required";
-    if (!accountNumber.trim()) newErrors.accountNumber = "Account number is required";
-    if (accountNumber !== confirmAccountNumber) newErrors.confirmAccountNumber = "Account numbers do not match";
-    if (!accountHolderName.trim()) newErrors.accountHolderName = "Account holder name is required";
-    if (!ifscCode.trim()) newErrors.ifscCode = "IFSC code is required";
+    if (!accountName.trim()) {
+      newErrors.accountName = "Account holder name is required";
+    }
     
-    // Basic IFSC validation (11 characters: 4 alphabets followed by 0 and 6 alphanumeric)
-    if (ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
-      newErrors.ifscCode = "Enter a valid IFSC code (e.g., HDFC0123456)";
+    if (!accountNumber.trim()) {
+      newErrors.accountNumber = "Account number is required";
+    } else if (!/^\d{9,18}$/.test(accountNumber)) {
+      newErrors.accountNumber = "Account number must be 9-18 digits";
+    }
+    
+    if (accountNumber !== confirmAccountNumber) {
+      newErrors.confirmAccountNumber = "Account numbers don't match";
+    }
+    
+    if (!ifscCode.trim()) {
+      newErrors.ifscCode = "IFSC code is required";
+    } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+      newErrors.ifscCode = "Invalid IFSC code format";
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
+  
   const handleContinue = async () => {
     if (!validateForm()) return;
     
@@ -83,19 +78,17 @@ export default function BankDetailsPage() {
       
       // Prepare the request payload
       const payload = {
-        bank_name: bankName,
+        account_holder_name: accountName,
         account_number: accountNumber,
-        account_holder_name: accountHolderName,
-        branch_name: branchName,
         ifsc_code: ifscCode,
-        is_primary: isPrimary
+        bank_name: bankName
       };
       
-      // Make the API call
+      // Make the API call using the service
       const data = await addBankDetails(payload, authData.token);
       
       if (data.status) {
-        // Navigate to the dashboard page
+        // Navigate to the thank you page after successful submission
         router.push("/onboarding/thank-you");
       } else {
         setErrors({ api: data.message || "Failed to save bank details. Please try again." });
@@ -107,7 +100,7 @@ export default function BankDetailsPage() {
       setIsLoading(false);
     }
   };
-
+  
   return (
     <div className="min-h-screen flex bg-white">
       {/* Left Section - Form */}
@@ -122,128 +115,80 @@ export default function BankDetailsPage() {
           <OnboardingSteps currentStep="bank" />
 
           {/* Main Form */}
-          <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Bank Account Details</h2>
-
+          <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+            <h2 className="text-xl font-semibold mb-6">Bank Account Details</h2>
+            
+            {errors.api && (
+              <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                {errors.api}
+              </div>
+            )}
+            
             <div className="space-y-4">
-              {errors.api && (
-                <div className="p-2 bg-red-50 text-red-700 rounded-md border border-red-200 text-sm">
-                  {errors.api}
-                </div>
-              )}
-              
-              {/* Bank Name */}
-              <div>
-                <label htmlFor="bank-name" className="block text-xs font-medium text-gray-700 mb-1">
-                  Bank Name*
-                </label>
-                <input
-                  type="text"
-                  id="bank-name"
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Enter your bank name"
-                  className={`w-full p-2 border ${errors.bankName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
-                />
-                {errors.bankName && <p className="mt-1 text-xs text-red-600">{errors.bankName}</p>}
-              </div>
-
-              {/* Account Number */}
-              <div>
-                <label htmlFor="account-number" className="block text-xs font-medium text-gray-700 mb-1">
-                  Account Number*
-                </label>
-                <input
-                  type="text"
-                  id="account-number"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="Enter your account number"
-                  className={`w-full p-2 border ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
-                />
-                {errors.accountNumber && <p className="mt-1 text-xs text-red-600">{errors.accountNumber}</p>}
-              </div>
-
-              {/* Confirm Account Number */}
-              <div>
-                <label htmlFor="confirm-account-number" className="block text-xs font-medium text-gray-700 mb-1">
-                  Confirm Account Number*
-                </label>
-                <input
-                  type="text"
-                  id="confirm-account-number"
-                  value={confirmAccountNumber}
-                  onChange={(e) => setConfirmAccountNumber(e.target.value)}
-                  placeholder="Confirm your account number"
-                  className={`w-full p-2 border ${errors.confirmAccountNumber ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
-                />
-                {errors.confirmAccountNumber && <p className="mt-1 text-xs text-red-600">{errors.confirmAccountNumber}</p>}
-              </div>
-
               {/* Account Holder Name */}
               <div>
-                <label htmlFor="account-holder-name" className="block text-xs font-medium text-gray-700 mb-1">
-                  Account Holder Name*
+                <label htmlFor="accountName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Holder Name *
                 </label>
                 <input
                   type="text"
-                  id="account-holder-name"
-                  value={accountHolderName}
-                  onChange={(e) => setAccountHolderName(e.target.value)}
-                  placeholder="Enter account holder's name"
-                  className={`w-full p-2 border ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
+                  id="accountName"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  className={`w-full p-2 border ${errors.accountName ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd]`}
                 />
-                {errors.accountHolderName && <p className="mt-1 text-xs text-red-600">{errors.accountHolderName}</p>}
+                {errors.accountName && <p className="mt-1 text-xs text-red-500">{errors.accountName}</p>}
               </div>
-
-              {/* Branch Name */}
+              
+              {/* Account Number */}
               <div>
-                <label htmlFor="branch-name" className="block text-xs font-medium text-gray-700 mb-1">
-                  Branch Name <span className="text-gray-400">(Optional)</span>
+                <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Number *
                 </label>
                 <input
                   type="text"
-                  id="branch-name"
-                  value={branchName}
-                  onChange={(e) => setBranchName(e.target.value)}
-                  placeholder="Enter branch name"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm"
+                  id="accountNumber"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  className={`w-full p-2 border ${errors.accountNumber ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd]`}
                 />
+                {errors.accountNumber && <p className="mt-1 text-xs text-red-500">{errors.accountNumber}</p>}
               </div>
-
+              
+              {/* Confirm Account Number */}
+              <div>
+                <label htmlFor="confirmAccountNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Account Number *
+                </label>
+                <input
+                  type="text"
+                  id="confirmAccountNumber"
+                  value={confirmAccountNumber}
+                  onChange={(e) => setConfirmAccountNumber(e.target.value)}
+                  className={`w-full p-2 border ${errors.confirmAccountNumber ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd]`}
+                />
+                {errors.confirmAccountNumber && <p className="mt-1 text-xs text-red-500">{errors.confirmAccountNumber}</p>}
+              </div>
+              
               {/* IFSC Code */}
               <div>
-                <label htmlFor="ifsc-code" className="block text-xs font-medium text-gray-700 mb-1">
-                  IFSC Code*
+                <label htmlFor="ifscCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  IFSC Code *
                 </label>
                 <input
                   type="text"
-                  id="ifsc-code"
+                  id="ifscCode"
                   value={ifscCode}
                   onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                  placeholder="Enter IFSC code (e.g. HDFC0123456)"
-                  className={`w-full p-2 border ${errors.ifscCode ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
-                  maxLength={11}
+                  className={`w-full p-2 border ${errors.ifscCode ? 'border-red-300' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd]`}
                 />
-                {errors.ifscCode && <p className="mt-1 text-xs text-red-600">{errors.ifscCode}</p>}
-              </div>
-
-              {/* Primary Account */}
-              <div className="flex items-center">
-                <input
-                  id="primary-account"
-                  type="checkbox"
-                  className="h-3.5 w-3.5 text-[#6800cd] border-gray-300 rounded focus:ring-[#6800cd]"
-                  checked={isPrimary}
-                  onChange={(e) => setIsPrimary(e.target.checked)}
-                />
-                <label htmlFor="primary-account" className="ml-2 text-xs text-gray-700">
-                  Set as primary account for payments
-                </label>
+                {errors.ifscCode && <p className="mt-1 text-xs text-red-500">{errors.ifscCode}</p>}
+                {ifscCode && !errors.ifscCode && (
+                  <p className="mt-1 text-xs text-gray-500">Bank: {bankName || "Retrieving bank name..."}</p>
+                )}
               </div>
             </div>
-
-            {/* Continue Button */}
+            
             <div className="flex justify-between mt-6">
               <Link href="/onboarding/business-details" className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 text-sm hover:bg-gray-50">
                 Back
@@ -265,37 +210,46 @@ export default function BankDetailsPage() {
         <div className="h-full flex flex-col justify-center items-center p-6">
           <div className="max-w-md">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Bank Account Information</h2>
+            <p className="text-sm text-gray-600 mb-8">
+              We need your bank details to process payments for your sales. Your bank information is secured with 
+              bank-grade encryption and never shared with third parties.
+            </p>
             
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg p-3 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-800 mb-2">Why we need your bank details</h3>
-                <p className="text-xs text-gray-600 mb-2">We need your bank account information to process payments for your sales on Agora Market.</p>
-                <ul className="space-y-1 text-xs text-gray-600 list-disc list-inside">
-                  <li>Your bank details are securely stored</li>
-                  <li>We use industry-standard encryption</li>
-                  <li>You'll receive payments directly to your bank account</li>
-                  <li>Payment settlements typically happen within 3-5 business days</li>
-                </ul>
-              </div>
-
-              <div className="bg-white rounded-lg p-3 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-800 mb-2">Tips for providing bank details</h3>
-                <ul className="space-y-1 text-xs text-gray-600 list-disc list-inside">
-                  <li>Enter the account holder name exactly as it appears on your bank statements</li>
-                  <li>Double-check your account number to avoid payment delays</li>
-                  <li>IFSC code format: First 4 letters represent bank, followed by 0 and 6 characters for branch</li>
-                  <li>Only savings or current accounts are accepted</li>
-                </ul>
+            <div className="space-y-6">
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800 mb-1">Secure Information</h3>
+                  <p className="text-xs text-gray-600">Your bank details are encrypted and securely stored</p>
+                </div>
               </div>
               
-              <div className="flex justify-center mt-4">
-                <Image 
-                  src="/banking-secure.png" 
-                  alt="Secure banking" 
-                  width={250} 
-                  height={200}
-                  className="object-contain"
-                />
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800 mb-1">Fast Payments</h3>
+                  <p className="text-xs text-gray-600">Receive your payments directly in your bank account</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800 mb-1">Transaction History</h3>
+                  <p className="text-xs text-gray-600">View all your transaction history in your seller dashboard</p>
+                </div>
               </div>
             </div>
           </div>
