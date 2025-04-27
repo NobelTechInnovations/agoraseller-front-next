@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { sendOTP, verifyOTP } from "./services/api";
 import { useRouter } from "next/navigation";
+import CryptoJS from "crypto-js";
 
 export default function Home() {
   const router = useRouter();
@@ -60,11 +61,15 @@ export default function Home() {
 
     try {
       const data = await verifyOTP(phoneNumber, otp);
+      const secretKey = "24_agora_secret"; // keep it hidden
+      const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
       if (data.status) {
-        // OTP verification successful
-        // Redirect to the next step or dashboard
-        router.push("/onboarding"); // Adjust the route as needed
+        // Save the phone number in localStorage/sessionStorage for the registration form
+        sessionStorage.setItem('verified_phone', phoneNumber);
+        
+        // Redirect to the onboarding page with encrypted phone number as query parameter
+        router.push(`/onboarding`);
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
       }
@@ -103,15 +108,15 @@ export default function Home() {
                 <input 
                   type="text" 
                   placeholder="Enter Mobile Number" 
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   disabled={otpSent || loading}
                 />
                 <button 
-                  className={`absolute right-0 top-0 h-full px-4 ${
+                  className={`absolute right-0 top-0 h-full px-3 ${
                     loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-                  } text-white rounded-r-md font-medium transition-colors`}
+                  } text-white rounded-r-md font-medium transition-colors text-sm`}
                   onClick={handleSendOTP}
                   disabled={!isValidPhone(phoneNumber) || loading || otpSent}
                 >
@@ -129,14 +134,14 @@ export default function Home() {
                 <input 
                   type="text" 
                   placeholder="Enter OTP" 
-                  className={`w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50' : ''}`}
+                  className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50' : ''}`}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   disabled={!otpSent || loading}
                 />
                 {otpSent && (
                   <button 
-                    className="text-[#6800cd] text-sm font-medium absolute right-3 top-1/2 transform -translate-y-1/2"
+                    className="text-[#6800cd] text-xs font-medium absolute right-3 top-1/2 transform -translate-y-1/2"
                     onClick={handleResendOTP}
                     disabled={loading || verifying}
                   >
@@ -150,19 +155,19 @@ export default function Home() {
               <input 
                 type="checkbox" 
                 id="whatsapp-updates" 
-                className="h-4 w-4 text-[#6800cd] focus:ring-[#6800cd] border-gray-300 rounded"
+                className="h-3.5 w-3.5 text-[#6800cd] focus:ring-[#6800cd] border-gray-300 rounded"
                 checked={whatsappUpdates}
                 onChange={(e) => setWhatsappUpdates(e.target.checked)}
               />
-              <label htmlFor="whatsapp-updates" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="whatsapp-updates" className="ml-2 block text-xs text-gray-700">
                 I want to receive important updates on WhatsApp
               </label>
             </div>
 
             <button 
-              className={`w-full p-3 ${
+              className={`w-full p-2 ${
                 otpSent && otp.length > 0 ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-              } text-white rounded-md font-medium transition-colors`}
+              } text-white rounded-md font-medium transition-colors text-sm`}
               onClick={handleContinue}
               disabled={!otpSent || otp.length === 0 || verifying}
             >
@@ -182,68 +187,68 @@ export default function Home() {
       {/* Right Section - Info Graphics */}
       <div className="w-full md:w-1/2 bg-gray-50 p-6 md:p-12 flex flex-col justify-center">
         <div className="max-w-lg mx-auto">
-          <h2 className="text-xl md:text-2xl font-semibold text-black mb-8">
+          <h2 className="text-lg md:text-xl font-semibold text-black mb-6">
             Grow your business faster by selling on Agora Market
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-black">11 lakh+</h3>
-                <p className="text-sm text-gray-600">Suppliers are selling commission-free</p>
+                <h3 className="font-semibold text-sm text-black">11 lakh+</h3>
+                <p className="text-xs text-gray-600">Suppliers are selling commission-free</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-black">19000+</h3>
-                <p className="text-sm text-gray-600">Pincodes supported for delivery</p>
+                <h3 className="font-semibold text-sm text-black">19000+</h3>
+                <p className="text-xs text-gray-600">Pincodes supported for delivery</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-black">Crore of</h3>
-                <p className="text-sm text-gray-600">Customers buy across India</p>
+                <h3 className="font-semibold text-sm text-black">Crore of</h3>
+                <p className="text-xs text-gray-600">Customers buy across India</p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-black">700+</h3>
-                <p className="text-sm text-gray-600">Categories to sell</p>
+                <h3 className="font-semibold text-sm text-black">700+</h3>
+                <p className="text-xs text-gray-600">Categories to sell</p>
               </div>
             </div>
           </div>
 
           <div className="mt-12">
-            <h3 className="text-lg font-semibold text-black mb-4">All you need to sell on SellOnAgora is:</h3>
+            <h3 className="text-base font-semibold text-black mb-3">All you need to sell on SellOnAgora is:</h3>
             
             <div className="space-y-4">
               <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-[#f5eeff] flex items-center justify-center mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-5 h-5 rounded-full bg-[#f5eeff] flex items-center justify-center mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -271,8 +276,8 @@ export default function Home() {
               </div>
 
               <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-[#f5eeff] flex items-center justify-center mr-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-5 h-5 rounded-full bg-[#f5eeff] flex items-center justify-center mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>

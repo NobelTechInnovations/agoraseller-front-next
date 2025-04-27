@@ -47,4 +47,98 @@ export const verifyOTP = async (phone, otp) => {
   }
 };
 
+/**
+ * Register a new seller after OTP verification
+ * @param {object} sellerData - Seller registration data
+ * @returns {Promise} - API response
+ */
+export const registerSeller = async (sellerData) => {
+  try {
+    const response = await fetch(`${BASE_URL}/seller/onboarding/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(sellerData),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error registering seller:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add bank details for the seller
+ * @param {object} bankDetails - Bank account details
+ * @param {string} token - Authentication token
+ * @returns {Promise} - API response
+ */
+export const addBankDetails = async (bankDetails, token) => {
+  try {
+    const response = await fetch(`${BASE_URL}/seller/onboarding/add-bank-details`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(bankDetails),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error adding bank details:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add warehouse/pickup address for the seller
+ * @param {object} warehouseData - Warehouse details
+ * @param {string} token - Authentication token
+ * @returns {Promise} - API response
+ */
+export const addWarehouse = async (warehouseData, token) => {
+  try {
+    const response = await fetch(`${BASE_URL}/seller/onboarding/add-warehouse`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(warehouseData),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error adding warehouse:", error);
+    throw error;
+  }
+};
+
+/**
+ * Complete seller profile with business details
+ * @param {object} businessData - Business details including name, address, pincode, etc.
+ * @param {string} token - Authentication token
+ * @returns {Promise} - API response
+ */
+export const completeBusinessProfile = async (businessData, token) => {
+  try {
+    const response = await fetch(`${BASE_URL}/seller/onboarding/complete-profile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(businessData),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error completing business profile:", error);
+    throw error;
+  }
+};
+
 // Export other API methods as needed 
