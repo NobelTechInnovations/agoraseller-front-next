@@ -93,7 +93,7 @@ export default function ReturnsPage() {
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center">
             <h2 className="text-sm font-medium text-gray-800 mr-2">Summary</h2>
-            <span className="text-xs text-gray-500">(31 Mar'25 - 27 Apr'25)</span>
+            <span className="text-xs text-gray-500">(31 Mar 25 - 27 Apr 25)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -148,7 +148,7 @@ export default function ReturnsPage() {
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center">
             <h2 className="text-sm font-medium text-gray-800 mr-2">Product Performance</h2>
-            <span className="text-xs text-gray-500">(31 Mar'25 - 27 Apr'25)</span>
+            <span className="text-xs text-gray-500">(31 Mar 25 - 27 Apr 25)</span>
           </div>
           <div className="flex items-center">
             <span className="text-xs text-gray-600 mr-2">Sort by:</span>

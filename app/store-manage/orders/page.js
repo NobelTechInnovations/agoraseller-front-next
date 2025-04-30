@@ -48,9 +48,9 @@ export default function OrdersPage() {
           />
         </div>
         <div className="flex-1">
-          <h2 className="text-base font-medium text-gray-800">Cant't download labels? Don't worry!</h2>
+          <h2 className="text-base font-medium text-gray-800">Cant&apos;t download labels? Don&apos;t worry!</h2>
           <p className="text-xs text-gray-600">
-            Raise a Ticket | We'll download the label and send it to you | No Penalty Guaranteed
+            Raise a Ticket | We&apos;ll download the label and send it to you | No Penalty Guaranteed
           </p>
         </div>
         <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium">
