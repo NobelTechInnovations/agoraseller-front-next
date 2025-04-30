@@ -57,7 +57,7 @@ export default function ThankYouPage() {
             </li>
             <li className="flex items-start">
               <span className="w-4 h-4 bg-[#6800cd] rounded-full text-white flex items-center justify-center text-xs mr-2 flex-shrink-0 mt-0.5">2</span>
-              <span>You'll receive an email confirmation once your account is activated</span>
+              <span>You&apos;ll receive an email confirmation once your account is activated</span>
             </li>
             <li className="flex items-start">
               <span className="w-4 h-4 bg-[#6800cd] rounded-full text-white flex items-center justify-center text-xs mr-2 flex-shrink-0 mt-0.5">3</span>
