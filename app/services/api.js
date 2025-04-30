@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
  */
 export const sendOTP = async (phone) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/send-otp`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/request-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -32,7 +32,7 @@ export const sendOTP = async (phone) => {
  */
 export const verifyOTP = async (phone, otp) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/verify-otp`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/verify-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -54,7 +54,7 @@ export const verifyOTP = async (phone, otp) => {
  */
 export const registerSeller = async (sellerData) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/register`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export const registerSeller = async (sellerData) => {
  */
 export const addBankDetails = async (bankDetails, token) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/add-bank-details`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/add-bank-details`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export const addBankDetails = async (bankDetails, token) => {
  */
 export const addWarehouse = async (warehouseData, token) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/add-warehouse`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/add-warehouse`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +125,7 @@ export const addWarehouse = async (warehouseData, token) => {
  */
 export const completeBusinessProfile = async (businessData, token) => {
   try {
-    const response = await fetch(`${BASE_URL}/seller/onboarding/complete-profile`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/business-data`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
