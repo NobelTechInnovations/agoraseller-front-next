@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { registerSeller } from "../services/api";
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedOption, setSelectedOption] = useState("enrolment");
@@ -331,4 +339,4 @@ export default function OnboardingPage() {
       </div>
     </div>
   );
-} 
+}
