@@ -1,14 +1,13 @@
 // API base URL
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
 /**
  * Send OTP to the provided phone number
  * @param {string} phone - Phone number (10-15 digits)
  * @returns {Promise} - API response
  */
 export const sendOTP = async (phone) => {
-  try {
+  try { 
     const response = await fetch(`${BASE_URL}/v1/seller/user/request-otp`, {
       method: "POST",
       headers: {

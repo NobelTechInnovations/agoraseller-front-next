@@ -35,14 +35,16 @@ export default function Home() {
     try {
       const data = await sendOTP(phoneNumber);
 
-      if (data.status) {
+      if (data.success) {
         setOtpSent(true);
-        // Don't prefill OTP even if available in response
+        setError(""); // Clear any previous errors
       } else {
         setError(data.message || "Failed to send OTP. Please try again.");
+        setOtpSent(false);
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err.response?.data?.message || "Something went wrong. Please try again.");
+      setOtpSent(false);
       console.error(err);
     } finally {
       setLoading(false);
@@ -134,7 +136,7 @@ export default function Home() {
                 <input 
                   type="text" 
                   placeholder="Enter OTP" 
-                  className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50' : ''}`}
+                  className={`w-full p-2 border ${error && !otpSent ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   disabled={!otpSent || loading}
@@ -149,6 +151,9 @@ export default function Home() {
                   </button>
                 )}
               </div>
+              {error && !otpSent && (
+                <p className="text-red-500 text-sm mt-1">{error}</p>
+              )}
             </div>
 
             <div className="flex items-center">
