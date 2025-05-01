@@ -22,7 +22,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="fixed top-0 left-0 h-screen w-[220px] bg-[#1a1a1a] text-white flex flex-col">
+    <div className="fixed top-0 left-0 h-screen w-[240px] bg-[#1a1a1a] text-white flex flex-col">
       {/* Store profile header */}
       <div className="p-4 flex items-center gap-2 border-b border-gray-700">
         <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-black font-semibold">
