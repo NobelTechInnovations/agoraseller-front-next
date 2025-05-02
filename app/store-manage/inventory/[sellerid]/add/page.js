@@ -1,7 +1,66 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 
 const AddProduct = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryPath, setCategoryPath] = useState(['All categories']);
+  const [currentCategories, setCurrentCategories] = useState([
+    { name: 'Body care & Health', hasChildren: true },
+    { name: 'Food', hasChildren: true },
+    { name: 'Fashion & accessories', hasChildren: true },
+    { name: 'Homeware & furniture', hasChildren: true },
+    { name: 'Media', hasChildren: true },
+    { name: 'Sex toy', hasChildren: true },
+  ]);
+
+  // Sample child categories - in a real app, these would come from an API
+  const childCategories = {
+    'Body care & Health': [
+      { name: 'Personal Care', hasChildren: true },
+      { name: 'Health Care', hasChildren: true },
+      { name: 'Beauty Products', hasChildren: true },
+    ],
+    'Food': [
+      { name: 'Snacks', hasChildren: true },
+      { name: 'Beverages', hasChildren: true },
+      { name: 'Packaged Foods', hasChildren: true },
+    ],
+    // Add more child categories as needed
+  };
+
+  const handleNextClick = (category) => {
+    if (childCategories[category.name]) {
+      setCategoryPath([...categoryPath, category.name]);
+      setCurrentCategories(childCategories[category.name]);
+    }
+  };
+
+  const handleBackClick = () => {
+    if (categoryPath.length > 1) {
+      const newPath = [...categoryPath];
+      newPath.pop();
+      setCategoryPath(newPath);
+      
+      // Reset to main categories if we're going back to root
+      if (newPath.length === 1) {
+        setCurrentCategories([
+          { name: 'Body care & Health', hasChildren: true },
+          { name: 'Food', hasChildren: true },
+          { name: 'Fashion & accessories', hasChildren: true },
+          { name: 'Homeware & furniture', hasChildren: true },
+          { name: 'Media', hasChildren: true },
+          { name: 'Sex toy', hasChildren: true },
+        ]);
+      } else {
+        // In a real app, you would fetch the parent's children from an API
+        setCurrentCategories(childCategories[newPath[newPath.length - 1]] || []);
+      }
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
@@ -20,53 +79,128 @@ const AddProduct = () => {
             <div className="bg-white p-6 rounded-lg border border-gray-300">
               <form>
                 <div className="grid grid-cols-2 gap-6">
+                  <div className="col-span-2 bg-gray-100 p-4">
+                    <p className="text-sm text-gray-600">
+                      The product title should summarize the most important product details in short, concise and informative manner. Customer should be able to 
+                      identify the type of product and its main features at a glance. The ideal length is <b>50-80 characters</b>, this will ensure the entire title is visible in search results.
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor="title" className="block font-bold text-sm text-gray-700 mb-1">
+                      Product Title
+                    </label>
+                    <textarea
+                      id="title"
+                      rows={2}
+                      className="mt-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
 
-              <div className="col-span-2 bg-gray-100 p-4">
-                <p className="text-sm text-gray-600">
-                  The product title should summarize the most important product details in short, concise and informative manner. Cusotemr should be able to 
-                  indentify the type of product and its main features at a glance. The ideal length is <b>50-80 characters</b>, this will ensure the entire title is visible in search results.
+                  <div className="col-span-2 bg-gray-100 p-4">
+                    <p className="text-sm text-gray-600">
+                      Create a detailed description that highlights the product's features, benefits, and unique selling points.
+                      Briefly and concisely describe the function, the structure and any other relevant information. Always put the most important 
+                      information at the beginning of the description.
+                    </p>
+                  </div>
 
-                </p>
-              </div>
-              <div className="col-span-2">
-                <label htmlFor="title" className="block font-bold text-sm text-gray-700 mb-1">
-                  Product Title
-                </label>
-                <textarea
-                  id="title"
-                  rows={2}
-                  className="mt-1 block w-full border border-gray-300  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
+                  <div className="col-span-2">
+                    <label htmlFor="description" className="block font-bold text-sm text-gray-700 mb-1">
+                      Product Description
+                    </label>
+                    <textarea
+                      id="description"
+                      rows={5}
+                      className="mt-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
 
-              <div className="col-span-2 bg-gray-100 p-4">
-                <p className="text-sm text-gray-600">
-                  Create a detailed description that highlights the product's features, benefits, and unique selling points.
-                  Breifly and concisely describe the function, the struture and any other relevant information. Always put the most important 
-                  information at the beginning of the description.
-                </p>
-              </div>
+                  {/* Category Selection */}
+                  <div className="col-span-2">
+                    <div className="mb-6">
+                      
+                      <div className="mb-4">
+                        {/* Category Path */}
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                          {categoryPath.map((category, index) => (
+                            <div key={index} className="flex items-center">
+                              <span className={index === categoryPath.length - 1 ? "font-medium" : ""}>{category}</span>
+                              {index < categoryPath.length - 1 && <span className="mx-2">›</span>}
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Search Section */}
+                        <div className="mb-6">
+                          <label className="block text-sm text-gray-700 font-bold mb-1">Search for your desired category:</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Search all categories"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
 
-              <div className="col-span-2">
-                <label htmlFor="description" className="block font-bold text-sm text-gray-700 mb-1">
-                  Product Description
-                </label>
+                        <div className="text-center my-4">
+                          <span className="text-sm text-gray-500">or</span>
+                        </div>
 
-
-
-                <textarea
-                  id="description"
-                  rows={5}
-                  className="mt-1 block w-full border border-gray-300  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
-                 
+                        {/* Category Table */}
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-2">Choose your desired category:</label>
+                          <div className="border border-gray-200 rounded-md">
+                            <div className="py-2 px-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                              <span className="text-sm font-medium text-gray-800">
+                                {categoryPath[categoryPath.length - 1]}
+                              </span>
+                              {categoryPath.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={handleBackClick}
+                                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                                >
+                                  Back
+                                </button>
+                              )}
+                            </div>
+                            <div className="divide-y divide-gray-200">
+                              {currentCategories.map((category, index) => (
+                                <div 
+                                  key={index}
+                                  className="flex items-center justify-between py-3 px-4 hover:bg-gray-50"
+                                >
+                                  <span className="text-sm text-gray-700">{category.name}</span>
+                                  {category.hasChildren && (
+                                    <button 
+                                      type="button"
+                                      className="text-sm text-gray-500 hover:text-indigo-600"
+                                      onClick={() => handleNextClick(category)}
+                                    >
+                                      Next
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md  text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Next
                   </button>
@@ -113,7 +247,7 @@ const AddProduct = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default AddProduct;
