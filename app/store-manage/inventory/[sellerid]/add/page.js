@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const AddProduct = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,6 +17,9 @@ const AddProduct = () => {
     { name: 'Media', hasChildren: true },
     { name: 'Sex toy', hasChildren: true },
   ]);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Sample child categories - in a real app, these would come from an API
   const childCategories = {
@@ -30,6 +35,15 @@ const AddProduct = () => {
     ],
     // Add more child categories as needed
   };
+
+  // AWS S3 Configuration
+  const s3Client = new S3Client({
+    region: process.env.NEXT_PUBLIC_AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+    },
+  });
 
   const handleNextClick = (category) => {
     if (childCategories[category.name]) {
@@ -58,6 +72,54 @@ const AddProduct = () => {
         // In a real app, you would fetch the parent's children from an API
         setCurrentCategories(childCategories[newPath[newPath.length - 1]] || []);
       }
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      setUploadedImages(prev => [...prev, ...data.files]);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      const dataTransfer = new DataTransfer();
+      Array.from(files).forEach(file => dataTransfer.items.add(file));
+      fileInputRef.current.files = dataTransfer.files;
+      handleFileUpload({ target: { files: dataTransfer.files } });
     }
   };
 
@@ -130,28 +192,6 @@ const AddProduct = () => {
                           ))}
                         </div>
                         
-                        {/* Search Section */}
-                        <div className="mb-6">
-                          <label className="block text-sm text-gray-700 font-bold mb-1">Search for your desired category:</label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Search all categories"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-center my-4">
-                          <span className="text-sm text-gray-500">or</span>
-                        </div>
 
                         {/* Category Table */}
                         <div>
@@ -213,7 +253,11 @@ const AddProduct = () => {
           <div className="w-1/3">
             <div className="bg-white p-6 rounded-lg border border-gray-300">
               <h4 className="text-lg font-medium text-gray-800 mb-4">Product Images</h4>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <div className="space-y-1 text-center">
                   <svg
                     className="mx-auto h-12 w-12 text-gray-400"
@@ -235,13 +279,47 @@ const AddProduct = () => {
                       className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                     >
                       <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                      <input 
+                        id="file-upload" 
+                        name="file-upload" 
+                        type="file" 
+                        className="sr-only" 
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        multiple
+                        accept="image/*"
+                      />
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
                   <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                 </div>
               </div>
+
+              {/* Image Preview Section */}
+              {isUploading && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-600">Uploading images...</p>
+                </div>
+              )}
+
+              {uploadedImages.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Uploaded Images</h5>
+                  <div className="grid grid-cols-2 gap-2">
+                    {uploadedImages.map((image, index) => (
+                      <div key={index} className="relative aspect-square">
+                        <Image
+                          src={image.url}
+                          alt={image.name}
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
