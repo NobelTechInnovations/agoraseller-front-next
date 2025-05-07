@@ -3,12 +3,17 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { useRouter } from 'next/navigation';
 
 const AddProduct = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryPath, setCategoryPath] = useState(['All categories']);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const fileInputRef = useRef(null);
+  const router = useRouter();
   const [currentCategories, setCurrentCategories] = useState([
     { name: 'Body care & Health', hasChildren: true },
     { name: 'Food', hasChildren: true },
@@ -17,9 +22,8 @@ const AddProduct = () => {
     { name: 'Media', hasChildren: true },
     { name: 'Sex toy', hasChildren: true },
   ]);
-  const [uploadedImages, setUploadedImages] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+
+  const MAX_IMAGES = 7;
 
   // Sample child categories - in a real app, these would come from an API
   const childCategories = {
@@ -33,22 +37,26 @@ const AddProduct = () => {
       { name: 'Beverages', hasChildren: true },
       { name: 'Packaged Foods', hasChildren: true },
     ],
+    'Personal Care': [
+      { name: 'Makeup', hasChildren: true },
+      { name: 'Skincare', hasChildren: true },
+      { name: 'Hair Care', hasChildren: false },
+    ],
+    'Makeup': [
+      { name: 'Lipstick', hasChildren: false },
+      { name: 'Foundation', hasChildren: false },
+      { name: 'Eyeshadow', hasChildren: false },
+    ],
     // Add more child categories as needed
   };
-
-  // AWS S3 Configuration
-  const s3Client = new S3Client({
-    region: process.env.NEXT_PUBLIC_AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
-    },
-  });
 
   const handleNextClick = (category) => {
     if (childCategories[category.name]) {
       setCategoryPath([...categoryPath, category.name]);
       setCurrentCategories(childCategories[category.name]);
+    } else {
+      // This is an end category
+      setSelectedCategory(category);
     }
   };
 
@@ -75,31 +83,37 @@ const AddProduct = () => {
     }
   };
 
-  const handleFileUpload = async (event) => {
+  const handleFileUpload = (event) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
+    setUploadError(null);
+    
     try {
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      // Calculate how many more images we can add
+      const remainingSlots = MAX_IMAGES - uploadedImages.length;
+      
+      // Take only as many files as we have slots for
+      const filesToUpload = Array.from(files).slice(0, remainingSlots);
+      
+      // Check if we're rejecting any files due to the limit
+      if (files.length > remainingSlots) {
+        const rejectedCount = files.length - remainingSlots;
+        setUploadError(`Only the first ${remainingSlots} image${remainingSlots !== 1 ? 's' : ''} ${remainingSlots !== 1 ? 'were' : 'was'} added. ${rejectedCount} image${rejectedCount !== 1 ? 's' : ''} ${rejectedCount !== 1 ? 'were' : 'was'} rejected due to the ${MAX_IMAGES} image limit.`);
       }
-
-      const data = await response.json();
-      setUploadedImages(prev => [...prev, ...data.files]);
+      
+      // Create local URLs for preview only for the files we're keeping
+      const localImages = filesToUpload.map(file => ({
+        url: URL.createObjectURL(file),
+        name: file.name,
+        file: file // Store the file object for later upload
+      }));
+      
+      setUploadedImages(prev => [...prev, ...localImages]);
     } catch (error) {
-      console.error('Error uploading files:', error);
-      // You might want to show an error message to the user here
+      console.error('Error handling files:', error);
+      setUploadError('Failed to process selected images');
     } finally {
       setIsUploading(false);
     }
@@ -116,11 +130,57 @@ const AddProduct = () => {
     
     const files = event.dataTransfer.files;
     if (files && files.length > 0) {
+      const remainingSlots = MAX_IMAGES - uploadedImages.length;
+      
+      // If we have no slots left, show error and don't process
+      if (remainingSlots <= 0) {
+        setUploadError(`Maximum of ${MAX_IMAGES} images already reached. No more images can be added.`);
+        return;
+      }
+      
+      // Take only as many files as we have slots for
+      const filesToUpload = Array.from(files).slice(0, remainingSlots);
+      
+      // Create a new DataTransfer object with only the files we're keeping
       const dataTransfer = new DataTransfer();
-      Array.from(files).forEach(file => dataTransfer.items.add(file));
+      filesToUpload.forEach(file => dataTransfer.items.add(file));
+      
+      // Update the file input with the limited files
       fileInputRef.current.files = dataTransfer.files;
+      
+      // Check if we're rejecting any files due to the limit
+      if (files.length > remainingSlots) {
+        const rejectedCount = files.length - remainingSlots;
+        setUploadError(`Only ${remainingSlots} image${remainingSlots !== 1 ? 's' : ''} ${remainingSlots !== 1 ? 'were' : 'was'} added. ${rejectedCount} image${rejectedCount !== 1 ? 's' : ''} ${rejectedCount !== 1 ? 'were' : 'was'} rejected due to the ${MAX_IMAGES} image limit.`);
+      }
+      
+      // Process the remaining files
       handleFileUpload({ target: { files: dataTransfer.files } });
     }
+  };
+  
+  const handleRemoveImage = (index) => {
+    setUploadedImages(prev => {
+      // Revoke object URL to avoid memory leaks
+      URL.revokeObjectURL(prev[index].url);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Add a function to dismiss error
+  const dismissError = () => {
+    setUploadError(null);
+  };
+
+  const handleSaveAndNext = () => {
+    if (!selectedCategory) {
+      alert('Please select a category first');
+      return;
+    }
+    
+    // Here you would typically save the form data
+    // For now, we'll just navigate to the next page
+    router.push(`/store-manage/inventory/dfs468g/add/test123`);
   };
 
   return (
@@ -191,7 +251,6 @@ const AddProduct = () => {
                             </div>
                           ))}
                         </div>
-                        
 
                         {/* Category Table */}
                         <div>
@@ -218,13 +277,21 @@ const AddProduct = () => {
                                   className="flex items-center justify-between py-3 px-4 hover:bg-gray-50"
                                 >
                                   <span className="text-sm text-gray-700">{category.name}</span>
-                                  {category.hasChildren && (
+                                  {category.hasChildren ? (
                                     <button 
                                       type="button"
                                       className="text-sm text-gray-500 hover:text-indigo-600"
                                       onClick={() => handleNextClick(category)}
                                     >
                                       Next
+                                    </button>
+                                  ) : (
+                                    <button 
+                                      type="button"
+                                      className="text-sm text-indigo-600 hover:text-indigo-800"
+                                      onClick={() => handleNextClick(category)}
+                                    >
+                                      Select
                                     </button>
                                   )}
                                 </div>
@@ -240,9 +307,15 @@ const AddProduct = () => {
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    onClick={handleSaveAndNext}
+                    className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md ${
+                      selectedCategory 
+                        ? 'text-purple-700 border-purple-700 hover:bg-purple-100' 
+                        : 'text-gray-400 border-gray-300 cursor-not-allowed'
+                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                    disabled={!selectedCategory}
                   >
-                    Next
+                    Save and Next
                   </button>
                 </div>
               </form>
@@ -252,15 +325,23 @@ const AddProduct = () => {
           {/* Image Upload Section - 1/3 width */}
           <div className="w-1/3">
             <div className="bg-white p-6 rounded-lg border border-gray-300">
-              <h4 className="text-lg font-medium text-gray-800 mb-4">Product Images</h4>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-medium text-gray-800">Product Images</h4>
+                <div className="text-sm bg-gray-100 px-2 py-1 rounded-md">
+                  <span className={uploadedImages.length === MAX_IMAGES ? "font-bold text-indigo-600" : ""}>
+                    {uploadedImages.length}/{MAX_IMAGES} images
+                  </span>
+                </div>
+              </div>
+              
               <div 
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center"
+                className={`border-2 border-dashed ${uploadedImages.length >= MAX_IMAGES ? 'border-gray-200 bg-gray-50' : 'border-gray-300'} rounded-lg p-6 text-center`}
                 onDragOver={handleDragOver}
-                onDrop={handleDrop}
+                onDrop={uploadedImages.length >= MAX_IMAGES ? null : handleDrop}
               >
                 <div className="space-y-1 text-center">
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
+                    className={`mx-auto h-12 w-12 ${uploadedImages.length >= MAX_IMAGES ? 'text-gray-300' : 'text-gray-400'}`}
                     stroke="currentColor"
                     fill="none"
                     viewBox="0 0 48 48"
@@ -276,48 +357,94 @@ const AddProduct = () => {
                   <div className="flex text-sm text-gray-600">
                     <label
                       htmlFor="file-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                      className={`relative ${uploadedImages.length >= MAX_IMAGES ? 'cursor-not-allowed bg-gray-100 text-gray-400' : 'cursor-pointer bg-white text-indigo-600 hover:text-indigo-500'} rounded-md font-medium focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500`}
                     >
-                      <span>Upload a file</span>
+                      <span>{uploadedImages.length >= MAX_IMAGES ? 'Maximum images reached' : 'Upload a file'}</span>
                       <input 
                         id="file-upload" 
                         name="file-upload" 
                         type="file" 
                         className="sr-only" 
                         ref={fileInputRef}
-                        onChange={handleFileUpload}
+                        onChange={uploadedImages.length >= MAX_IMAGES ? null : handleFileUpload}
                         multiple
                         accept="image/*"
+                        disabled={uploadedImages.length >= MAX_IMAGES}
                       />
                     </label>
-                    <p className="pl-1">or drag and drop</p>
+                    {uploadedImages.length < MAX_IMAGES && <p className="pl-1">or drag and drop</p>}
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  {uploadedImages.length < MAX_IMAGES ? (
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  ) : (
+                    <p className="text-xs text-gray-500">You've reached the maximum of {MAX_IMAGES} images</p>
+                  )}
                 </div>
               </div>
 
-              {/* Image Preview Section */}
-              {isUploading && (
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-600">Uploading images...</p>
+              {/* Error message display */}
+              {uploadError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md relative">
+                  <button 
+                    onClick={dismissError}
+                    className="absolute top-2 right-2 text-red-400 hover:text-red-600"
+                    aria-label="Dismiss error"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <p className="text-sm text-red-600 pr-7">{uploadError}</p>
                 </div>
               )}
 
+              {/* Loading indicator */}
+              {isUploading && (
+                <div className="mt-4 text-center">
+                  <div className="inline-flex items-center px-4 py-2">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm text-gray-600">Processing images...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Image Preview Section */}
               {uploadedImages.length > 0 && (
                 <div className="mt-4">
                   <h5 className="text-sm font-medium text-gray-700 mb-2">Uploaded Images</h5>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {uploadedImages.map((image, index) => (
-                      <div key={index} className="relative aspect-square">
-                        <Image
-                          src={image.url}
-                          alt={image.name}
-                          fill
-                          className="object-cover rounded-lg"
-                        />
+                      <div key={index} className="relative aspect-square group">
+                        <div className="h-full w-full relative">
+                          <Image
+                            src={image.url}
+                            alt={image.name}
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                        </div>
+                        <button 
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove image"
+                          title="Remove image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1.5 py-0.5 rounded">
+                          {index + 1}/{uploadedImages.length}
+                        </div>
                       </div>
                     ))}
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Images will be uploaded when you submit the form
+                  </p>
                 </div>
               )}
             </div>
