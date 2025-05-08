@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-// Helper to decode JWT (to extract role from token if needed)
+// Helper to decode JWT (to extract role from token)
 function parseJwt(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -18,7 +18,7 @@ function parseJwt(token) {
   }
 }
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -36,7 +36,7 @@ export const authOptions = {
               password: credentials.password,
             }),
           });
-          // console.log(res);
+
           const result = await res.json();
 
           if (res.ok && result.success && result.data?.token) {
@@ -83,7 +83,8 @@ export const authOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
+});
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+// ✅ ONLY export GET and POST — NOT authOptions
+export const GET = handler;
+export const POST = handler;
