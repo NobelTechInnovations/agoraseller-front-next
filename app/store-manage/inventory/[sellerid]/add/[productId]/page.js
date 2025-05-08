@@ -201,7 +201,7 @@ const ProductDetailsPage = ({ params }) => {
                       <div className="col-span-2 bg-gray-100 p-4">
                         <h4 className="font-medium text-gray-800">Material Details</h4>
                         <p className="text-sm text-gray-600">
-                          Provide information about the product's material characteristics.
+                          Provide information about the product&apos;s material characteristics.
                         </p>
                       </div>
                       
@@ -254,7 +254,7 @@ const ProductDetailsPage = ({ params }) => {
                       <div className="col-span-2 bg-gray-100 p-4">
                         <h4 className="font-medium text-gray-800">Pricing & Inventory</h4>
                         <p className="text-sm text-gray-600">
-                          Set your product's pricing and stock information.
+                          Set your product&apos;s pricing and stock information.
                         </p>
                       </div>
                       

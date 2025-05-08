@@ -104,7 +104,7 @@ export default function DashboardPage() {
           Welcome Back!
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-          Here's what's happening with your store today.
+          Here&apos;s what&apos;s happening with your store today.
         </Typography>
       </Box>
 
