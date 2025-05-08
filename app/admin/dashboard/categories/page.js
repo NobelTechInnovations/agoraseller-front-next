@@ -25,6 +25,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,6 +47,8 @@ export default function CategoriesPage() {
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [deleteLoadingId, setDeleteLoadingId] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -70,28 +73,48 @@ export default function CategoriesPage() {
     setNewCategory({ name: '', parentCategory: '', thumb: null });
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (newCategory.name.trim()) {
-      const formData = new FormData();
-      formData.append('name', newCategory.name);
-      formData.append('parentCategory', newCategory.parentCategory);
-      if (newCategory.thumb) {
-        formData.append('thumb', newCategory.thumb);
-      }
+      setActionLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('name', newCategory.name);
+        if (newCategory.parentCategory) {
+          formData.append('parent', newCategory.parentCategory);
+        }
+        if (newCategory.thumb) {
+          formData.append('thumb', newCategory.thumb);
+        }
 
-      // Here you would typically send the formData to your API
-      // For now, we'll just update the local state
-      fetchCategories(); // Refresh the list after adding
-      handleClose();
+        const response = await axiosInstance.post('/category/add', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.data.success) {
+          fetchCategories(); // Refresh the list after adding
+          handleClose();
+        }
+      } catch (error) {
+        console.error('Error adding category:', error);
+      } finally {
+        setActionLoading(false);
+      }
     }
   };
 
   const handleDeleteCategory = async (id) => {
+    setDeleteLoadingId(id);
     try {
-      await axiosInstance.delete(`/category/${id}`);
-      fetchCategories(); // Refresh the list after deleting
+      const response = await axiosInstance.delete(`/category/${id}/delete`);
+      if (response.data.success) {
+        fetchCategories(); // Refresh the list after deleting
+      }
     } catch (error) {
       console.error('Error deleting category:', error);
+    } finally {
+      setDeleteLoadingId(null);
     }
   };
 
@@ -208,8 +231,13 @@ export default function CategoriesPage() {
                         size="small"
                         sx={{ color: theme.palette.error.main }}
                         onClick={() => handleDeleteCategory(category._id)}
+                        disabled={deleteLoadingId === category._id}
                       >
-                        <DeleteIcon />
+                        {deleteLoadingId === category._id ? (
+                          <CircularProgress size={20} color="error" />
+                        ) : (
+                          <DeleteIcon />
+                        )}
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -279,7 +307,7 @@ export default function CategoriesPage() {
           <Button
             variant="contained"
             onClick={handleAddCategory}
-            disabled={!newCategory.name.trim()}
+            disabled={!newCategory.name.trim() || actionLoading}
             sx={{
               background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
               '&:hover': {
@@ -287,7 +315,7 @@ export default function CategoriesPage() {
               },
             }}
           >
-            Add Category
+            {actionLoading ? 'Adding...' : 'Add Category'}
           </Button>
         </DialogActions>
       </Dialog>
