@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import axiosInstance from '../../utils/axios';
 import {
   Box,
   Container,
@@ -26,26 +26,32 @@ export default function AdminPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      const res = await signIn('credentials', {
-        redirect: false,
+      const response = await axiosInstance.post(`${process.env.NEXT_PUBLIC_ADMIN_API_URL}/auth`, {
         email: formData.email,
         password: formData.password,
       });
 
-      if (res.ok) {
+      if (response.data.success) {
+        // Store the token in localStorage
+        localStorage.setItem('adminToken', response.data.data.token);
+        // Redirect to dashboard
         router.push('/admin/dashboard');
       } else {
-        setError('Invalid email or password');
+        setError(response.data.message || 'Login failed');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Something went wrong. Try again.');
+      setError(err.response?.data?.message || 'Something went wrong. Try again.');
+    } finally {
+      setLoading(false);
     }
   };
 

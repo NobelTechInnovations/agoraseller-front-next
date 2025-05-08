@@ -32,7 +32,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axiosInstance from '../../../utils/axios';
 
 export default function CategoriesPage() {
   const theme = useTheme();
@@ -43,11 +44,25 @@ export default function CategoriesPage() {
     parentCategory: '',
     thumb: null 
   });
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Electronics', parentCategory: '', status: 'active' },
-    { id: 2, name: 'Clothing', parentCategory: '', status: 'active' },
-    { id: 3, name: 'Books', parentCategory: '', status: 'inactive' },
-  ]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axiosInstance.get('/category/list');
+      if (response.data.success) {
+        setCategories(response.data.data.categories);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -66,22 +81,18 @@ export default function CategoriesPage() {
 
       // Here you would typically send the formData to your API
       // For now, we'll just update the local state
-      const newId = Math.max(...categories.map(c => c.id)) + 1;
-      setCategories([
-        ...categories,
-        {
-          id: newId,
-          name: newCategory.name,
-          parentCategory: newCategory.parentCategory,
-          status: 'active'
-        }
-      ]);
+      fetchCategories(); // Refresh the list after adding
       handleClose();
     }
   };
 
-  const handleDeleteCategory = (id) => {
-    setCategories(categories.filter(category => category.id !== id));
+  const handleDeleteCategory = async (id) => {
+    try {
+      await axiosInstance.delete(`/category/${id}`);
+      fetchCategories(); // Refresh the list after deleting
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -101,9 +112,23 @@ export default function CategoriesPage() {
     }
   };
 
+  const getParentCategoryName = (parentId) => {
+    if (!parentId) return 'None';
+    const parent = categories.find(cat => cat._id === parentId);
+    return parent ? parent.name : 'Unknown';
+  };
+
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography>Loading categories...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ px: 4 }}>
@@ -148,16 +173,19 @@ export default function CategoriesPage() {
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Slug</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Parent Category</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Created At</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredCategories.map((category) => (
-                  <TableRow key={category.id}>
+                  <TableRow key={category._id}>
                     <TableCell>{category.name}</TableCell>
-                    <TableCell>{category.parentCategory || 'None'}</TableCell>
+                    <TableCell>{category.slug}</TableCell>
+                    <TableCell>{getParentCategoryName(category.parent)}</TableCell>
                     <TableCell>
                       <Chip
                         label={category.status}
@@ -165,6 +193,9 @@ export default function CategoriesPage() {
                         size="small"
                         sx={{ borderRadius: 1 }}
                       />
+                    </TableCell>
+                    <TableCell>
+                      {new Date(category.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
                       <IconButton
@@ -176,7 +207,7 @@ export default function CategoriesPage() {
                       <IconButton
                         size="small"
                         sx={{ color: theme.palette.error.main }}
-                        onClick={() => handleDeleteCategory(category.id)}
+                        onClick={() => handleDeleteCategory(category._id)}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -214,7 +245,7 @@ export default function CategoriesPage() {
               >
                 <MenuItem value="">None</MenuItem>
                 {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.name}>
+                  <MenuItem key={category._id} value={category._id}>
                     {category.name}
                   </MenuItem>
                 ))}
