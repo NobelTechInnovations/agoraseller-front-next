@@ -220,7 +220,7 @@ const AddProduct = () => {
 
                   <div className="col-span-2 bg-gray-100 p-4">
                     <p className="text-sm text-gray-600">
-                      Create a detailed description that highlights the product's features, benefits, and unique selling points.
+                      Create a detailed description that highlights the product&apos;s features, benefits, and unique selling points.
                       Briefly and concisely describe the function, the structure and any other relevant information. Always put the most important 
                       information at the beginning of the description.
                     </p>
@@ -377,7 +377,7 @@ const AddProduct = () => {
                   {uploadedImages.length < MAX_IMAGES ? (
                     <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                   ) : (
-                    <p className="text-xs text-gray-500">You've reached the maximum of {MAX_IMAGES} images</p>
+                    <p className="text-xs text-gray-500">You&apos;ve reached the maximum of {MAX_IMAGES} images</p>
                   )}
                 </div>
               </div>
