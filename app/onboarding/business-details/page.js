@@ -21,7 +21,7 @@ export default function BusinessDetailsPage() {
     // Check if token exists and is valid
     const authData = localStorage.getItem('sellerAuth');
     if (!authData) {
-      router.push('/onboarding');
+      // router.push('/onboarding');
       return;
     }
     
