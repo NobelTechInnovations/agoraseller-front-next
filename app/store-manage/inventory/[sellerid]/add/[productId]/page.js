@@ -36,6 +36,71 @@ const ProductDetailsPage = ({ params }) => {
   
   const [errors, setErrors] = useState({});
   
+  // Add new state variables at the top with other states
+  const [hasVariations, setHasVariations] = useState(false);
+  const [selectedAttributes, setSelectedAttributes] = useState([]);
+  const [variations, setVariations] = useState([]);
+  const [variationImages, setVariationImages] = useState({});
+  
+  // Available variation attributes
+  const availableAttributes = [
+    { id: 'color', label: 'Color' },
+    { id: 'size', label: 'Size' },
+    { id: 'pattern', label: 'Pattern' },
+    { id: 'material', label: 'Material' },
+    { id: 'style', label: 'Style' },
+    { id: 'fit', label: 'Fit' },
+    { id: 'length', label: 'Length' },
+    { id: 'sleeve', label: 'Sleeve' }
+  ];
+
+  const handleAttributeChange = (attributeId) => {
+    setSelectedAttributes(prev => {
+      if (prev.includes(attributeId)) {
+        return prev.filter(id => id !== attributeId);
+      }
+      if (prev.length >= 3) {
+        // Show error or notification that max 3 attributes can be selected
+        return prev;
+      }
+      return [...prev, attributeId];
+    });
+  };
+
+  const handleAddVariation = () => {
+    // Create a new variation object with selected attributes
+    const newVariation = {
+      id: Date.now(),
+      ...selectedAttributes.reduce((acc, attr) => ({
+        ...acc,
+        [attr]: ''
+      }), {}),
+      price: '',
+      stock: '',
+      image: null
+    };
+    
+    setVariations([...variations, newVariation]);
+  };
+
+  const handleDeleteVariation = (variationId) => {
+    setVariations(variations.filter(v => v.id !== variationId));
+    // Also remove the image if exists
+    const newVariationImages = { ...variationImages };
+    delete newVariationImages[variationId];
+    setVariationImages(newVariationImages);
+  };
+
+  const handleImageUpload = (variationId, file) => {
+    // Here you would typically handle the actual file upload
+    // For now, we'll just create a preview URL
+    const imageUrl = URL.createObjectURL(file);
+    setVariationImages(prev => ({
+      ...prev,
+      [variationId]: imageUrl
+    }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -61,27 +126,6 @@ const ProductDetailsPage = ({ params }) => {
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-  
-  const handleAddVariation = () => {
-    if (!variationSize || !variationColor || !variationPrice || !variationStock) return;
-    
-    const newVariation = {
-      size: variationSize,
-      color: variationColor,
-      price: variationPrice,
-      stock: variationStock
-    };
-    
-    // Add to variations array
-    setSizeVariations([...sizeVariations, variationSize]);
-    setColorVariations([...colorVariations, variationColor]);
-    
-    // Reset form
-    setVariationSize('');
-    setVariationColor('');
-    setVariationPrice('');
-    setVariationStock('');
   };
   
   const handleSaveAndNext = () => {
@@ -134,9 +178,9 @@ const ProductDetailsPage = ({ params }) => {
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-2">
         {/* Main Form Container */}
-        <div className="flex-1 w-2/3">
+        <div className="flex-1 w-3/4">
           <div className="bg-white p-6 rounded-lg border border-gray-300">
             {/* Welcome Section */}
             <div className="mb-8">
@@ -171,7 +215,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="color"
                           value={color}
                           onChange={(e) => setColor(e.target.value)}
-                          className="mt-1 block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                           placeholder="e.g. Red, Blue, Black"
                         />
                       </div>
@@ -186,7 +230,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="fabric"
                           value={fabric}
                           onChange={(e) => setFabric(e.target.value)}
-                          className="mt-1 block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                           placeholder="e.g. Cotton, Polyester, Silk"
                         />
                       </div>
@@ -201,7 +245,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="pattern"
                           value={pattern}
                           onChange={(e) => setPattern(e.target.value)}
-                          className="mt-1 block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                           placeholder="e.g. Solid, Striped, Floral"
                         />
                       </div>
@@ -219,13 +263,13 @@ const ProductDetailsPage = ({ params }) => {
                         <label htmlFor="mrpPrice" className="block font-bold text-sm text-gray-700 mb-1">
                           MRP Price (₹)*
                         </label>
-                        <div className="relative rounded-md shadow-sm">
+                        <div className="relative  shadow-sm">
                           <input
                             type="number"
                             id="mrpPrice"
                             value={mrpPrice}
                             onChange={(e) => setMrpPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-300'} rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-14 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -239,14 +283,14 @@ const ProductDetailsPage = ({ params }) => {
                         <label htmlFor="sellingPrice" className="block font-bold text-sm text-gray-700 mb-1">
                           Selling Price (₹)*
                         </label>
-                        <div className="relative rounded-md shadow-sm">
+                        <div className="relative  shadow-sm">
 
                           <input
                             type="number"
                             id="sellingPrice"
                             value={sellingPrice}
                             onChange={(e) => setSellingPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-300'} rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-14 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -265,7 +309,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="stockQty"
                           value={stockQty}
                           onChange={(e) => setStockQty(e.target.value)}
-                          className={`mt-1 block w-full border ${errors.stockQty ? 'border-red-500' : 'border-gray-300'} rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                          className={`mt-1 block w-full border ${errors.stockQty ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
                           placeholder="0"
                           min="0"
                           step="1"
@@ -283,7 +327,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="productWeight"
                           value={productWeight}
                           onChange={(e) => setProductWeight(e.target.value)}
-                          className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-300'} rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                          className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
                           placeholder="0"
                           min="0"
                           step="0.01"
@@ -295,117 +339,188 @@ const ProductDetailsPage = ({ params }) => {
                       <div className="col-span-2 bg-gray-100 p-4">
                         <div className="flex justify-between items-center">
                           <div>
-                            <h4 className="font-medium text-gray-800">Size & Color Variations</h4>
+                            <h4 className="font-medium text-gray-800">Product Variations</h4>
                             <p className="text-sm text-gray-600">
-                              Add variations if your product comes in different sizes or colors.
+                              Does this product have variations?
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowVariationForm(!showVariationForm)}
-                            className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-md text-sm hover:bg-indigo-100"
-                          >
-                            {showVariationForm ? "Hide Form" : "Add Variation"}
-                          </button>
+                          <div className="flex items-center gap-4">
+                            <label className="inline-flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={hasVariations}
+                                onChange={(e) => setHasVariations(e.target.checked)}
+                                className="form-checkbox h-5 w-5 text-indigo-600"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">Yes, this product has variations</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Variation Form */}
-                      {showVariationForm && (
-                        <div className="col-span-2 border border-dashed border-gray-300 p-4 rounded-md">
-                          <div className="grid grid-cols-4 gap-3">
-                            <div>
-                              <label htmlFor="variationSize" className="block text-xs font-medium text-gray-700 mb-1">Size</label>
-                              <input
-                                type="text"
-                                id="variationSize"
-                                value={variationSize}
-                                onChange={(e) => setVariationSize(e.target.value)}
-                                className="block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
-                                placeholder="e.g. S, M, L"
-                              />
+                      {hasVariations && (
+                        <>
+                          {/* Variation Attributes Selection */}
+                          <div className="col-span-2 p-4 border border-gray-200 ">
+                            <h5 className="text-sm font-medium text-gray-700 mb-3">Select Variation Attributes (Max 3)</h5>
+                            <div className="grid grid-cols-4 gap-4">
+                              {availableAttributes.map(attr => (
+                                <label key={attr.id} className="inline-flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedAttributes.includes(attr.id)}
+                                    onChange={() => handleAttributeChange(attr.id)}
+                                    className="form-checkbox h-4 w-4 text-indigo-600"
+                                    disabled={!selectedAttributes.includes(attr.id) && selectedAttributes.length >= 3}
+                                  />
+                                  <span className={`ml-2 text-sm ${!selectedAttributes.includes(attr.id) && selectedAttributes.length >= 3 ? 'text-gray-400' : 'text-gray-700'}`}>
+                                    {attr.label}
+                                  </span>
+                                </label>
+                              ))}
                             </div>
-                            <div>
-                              <label htmlFor="variationColor" className="block text-xs font-medium text-gray-700 mb-1">Color</label>
-                              <input
-                                type="text"
-                                id="variationColor"
-                                value={variationColor}
-                                onChange={(e) => setVariationColor(e.target.value)}
-                                className="block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
-                                placeholder="e.g. Red, Blue"
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor="variationPrice" className="block text-xs font-medium text-gray-700 mb-1">Price</label>
-                              <input
-                                type="number"
-                                id="variationPrice"
-                                value={variationPrice}
-                                onChange={(e) => setVariationPrice(e.target.value)}
-                                className="block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor="variationStock" className="block text-xs font-medium text-gray-700 mb-1">Stock</label>
-                              <div className="flex items-center">
-                                <input
-                                  type="number"
-                                  id="variationStock"
-                                  value={variationStock}
-                                  onChange={(e) => setVariationStock(e.target.value)}
-                                  className="block w-full border border-gray-300 rounded-l-md focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
-                                  placeholder="0"
-                                  min="0"
-                                  step="1"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={handleAddVariation}
-                                  className="ml-1 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-r-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                >
-                                  Add
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Display variations */}
-                      {(sizeVariations.length > 0 || colorVariations.length > 0) && (
-                        <div className="col-span-2 mt-2">
-                          <div className="flex gap-4">
-                            {sizeVariations.length > 0 && (
-                              <div>
-                                <h5 className="text-sm font-medium mb-1">Sizes:</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {sizeVariations.map((size, idx) => (
-                                    <span key={idx} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                                      {size}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {colorVariations.length > 0 && (
-                              <div>
-                                <h5 className="text-sm font-medium mb-1">Colors:</h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {colorVariations.map((color, idx) => (
-                                    <span key={idx} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                                      {color}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
+                            {selectedAttributes.length >= 3 && (
+                              <p className="mt-2 text-sm text-gray-500">
+                                Maximum 3 attributes can be selected
+                              </p>
                             )}
                           </div>
-                        </div>
+
+                          {/* Variations Table */}
+                          {selectedAttributes.length > 0 && (
+                            <div className="col-span-2">
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      {selectedAttributes.map(attr => (
+                                        <th key={attr} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                          {attr}
+                                        </th>
+                                      ))}
+                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Price
+                                      </th>
+                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Stock
+                                      </th>
+                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Image
+                                      </th>
+                                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-200">
+                                    {variations.map((variation) => (
+                                      <tr key={variation.id}>
+                                        {selectedAttributes.map(attr => (
+                                          <td key={attr} className="px-6 py-4 whitespace-nowrap">
+                                            <input
+                                              type="text"
+                                              value={variation[attr] || ''}
+                                              onChange={(e) => {
+                                                const updatedVariations = variations.map(v => 
+                                                  v.id === variation.id 
+                                                    ? { ...v, [attr]: e.target.value }
+                                                    : v
+                                                );
+                                                setVariations(updatedVariations);
+                                              }}
+                                              className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                              placeholder={`Enter ${attr}`}
+                                            />
+                                          </td>
+                                        ))}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                          <input
+                                            type="number"
+                                            value={variation.price || ''}
+                                            onChange={(e) => {
+                                              const updatedVariations = variations.map(v => 
+                                                v.id === variation.id 
+                                                  ? { ...v, price: e.target.value }
+                                                  : v
+                                              );
+                                              setVariations(updatedVariations);
+                                            }}
+                                            className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                            placeholder="0.00"
+                                            min="0"
+                                            step="0.01"
+                                          />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                          <input
+                                            type="number"
+                                            value={variation.stock || ''}
+                                            onChange={(e) => {
+                                              const updatedVariations = variations.map(v => 
+                                                v.id === variation.id 
+                                                  ? { ...v, stock: e.target.value }
+                                                  : v
+                                              );
+                                              setVariations(updatedVariations);
+                                            }}
+                                            className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                            placeholder="0"
+                                            min="0"
+                                            step="1"
+                                          />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUpload(variation.id, e.target.files[0])}
+                                            className="hidden"
+                                            id={`image-upload-${variation.id}`}
+                                          />
+                                          <label
+                                            htmlFor={`image-upload-${variation.id}`}
+                                            className="cursor-pointer"
+                                          >
+                                            {variationImages[variation.id] ? (
+                                              <img
+                                                src={variationImages[variation.id]}
+                                                alt="Variation"
+                                                className="w-12 h-12 object-cover rounded"
+                                              />
+                                            ) : (
+                                              <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
+                                                Upload
+                                              </div>
+                                            )}
+                                          </label>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                          <button
+                                            onClick={() => handleDeleteVariation(variation.id)}
+                                            className="text-red-600 hover:text-red-900"
+                                          >
+                                            Delete
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                
+                                {/* Add New Variation Button */}
+                                <div className="mt-4 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={handleAddVariation}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium  text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                  >
+                                    Add New Variation
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                       
                       {/* Brand and Manufacturer Section */}
@@ -426,7 +541,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="brand"
                           value={brand}
                           onChange={(e) => setBrand(e.target.value)}
-                          className="mt-1 block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                           placeholder="e.g. Nike, Apple, Samsung"
                         />
                       </div>
@@ -441,7 +556,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="manufacturer"
                           value={manufacturer}
                           onChange={(e) => setManufacturer(e.target.value)}
-                          className="mt-1 block w-full border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                         />
                       </div>
                     </div>
@@ -449,14 +564,14 @@ const ProductDetailsPage = ({ params }) => {
                     <div className="mt-6 flex justify-between">
                       <Link 
                         href={`/store-manage/inventory/${sellerid}/add`}
-                        className="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md text-gray-700 border-gray-300 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-gray-700 border-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
                         Back
                       </Link>
                       <button
                         type="button"
                         onClick={handleSaveAndNext}
-                        className="inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md text-purple-700 border-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-purple-700 border-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
                         Save and Next
                       </button>
@@ -469,14 +584,35 @@ const ProductDetailsPage = ({ params }) => {
         </div>
 
         {/* Images Card */}
-        <div className="flex flex-col gap-6 w-1/3">
+        <div className="flex flex-col gap-6 w-1/4">
           <div className="bg-white p-6 rounded-lg border border-gray-300">
             <h4 className="text-lg font-medium text-gray-800 mb-4">Product Images</h4>
             <div className="flex flex-wrap gap-4">
-              {/* Placeholder images, replace with actual images if available */}
-              <div className="w-32 p-2 h-32 bg-gray-100 flex items-center justify-center rounded-md border border-gray-200 text-gray-400">
+              {/* Main product image placeholder */}
+              <div className="w-32 p-2 h-32 bg-gray-100 flex items-center justify-center border-gray-300 border border-gray-200 text-gray-400">
                 No images uploaded
               </div>
+              
+              {/* Variation thumbnails */}
+              {Object.entries(variationImages).map(([variationId, imageUrl]) => (
+                <div key={variationId} className="relative">
+                  <img
+                    src={imageUrl}
+                    alt="Variation"
+                    className="w-32 h-32 object-cover border-gray-900"
+                  />
+                  <button
+                    onClick={() => {
+                      const newVariationImages = { ...variationImages };
+                      delete newVariationImages[variationId];
+                      setVariationImages(newVariationImages);
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
