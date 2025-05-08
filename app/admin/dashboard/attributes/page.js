@@ -1,268 +1,364 @@
 'use client';
 
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  IconButton,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  useTheme,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
+  Grid,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+} from '@mui/icons-material';
 import { useState } from 'react';
 
 export default function AttributesPage() {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newAttribute, setNewAttribute] = useState({
+    name: '',
+    isRequired: false,
+  });
+  const [newValue, setNewValue] = useState('');
+  const [expandedAttribute, setExpandedAttribute] = useState(null);
   const [attributes, setAttributes] = useState([
-    // Sample data - replace with actual data from your API
     {
       id: 1,
-      name: 'Size',
-      values: ['Small', 'Medium', 'Large', 'XL', 'XXL', 'XXXL']
+      name: 'Color',
+      isRequired: true,
+      status: 'active',
+      values: ['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White'],
     },
     {
       id: 2,
-      name: 'Color',
-      values: ['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow', 'Purple', 'Orange']
-    }
+      name: 'Size',
+      isRequired: true,
+      status: 'active',
+      values: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    },
+    {
+      id: 3,
+      name: 'Material',
+      isRequired: false,
+      status: 'active',
+      values: ['Cotton', 'Polyester', 'Wool', 'Silk', 'Leather'],
+    },
   ]);
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isAddValueModalOpen, setIsAddValueModalOpen] = useState(false);
-  const [isViewMoreModalOpen, setIsViewMoreModalOpen] = useState(false);
-  const [selectedAttribute, setSelectedAttribute] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    value: ''
-  });
-
-  const handleCreateAttribute = async (e) => {
-    e.preventDefault();
-    // TODO: Implement attribute creation logic
-    console.log('Create attribute:', formData);
-    setIsCreateModalOpen(false);
-    setFormData({ name: '', value: '' });
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setNewAttribute({
+      name: '',
+      isRequired: false,
+    });
   };
 
-  const handleAddValue = async (e) => {
-    e.preventDefault();
-    // TODO: Implement value addition logic
-    console.log('Add value:', { attributeId: selectedAttribute.id, value: formData.value });
-    setIsAddValueModalOpen(false);
-    setFormData({ name: '', value: '' });
+  const handleAddAttribute = () => {
+    if (newAttribute.name.trim()) {
+      const newId = Math.max(...attributes.map(a => a.id)) + 1;
+      setAttributes([
+        ...attributes,
+        {
+          id: newId,
+          ...newAttribute,
+          status: 'active',
+          values: [],
+        }
+      ]);
+      handleClose();
+    }
   };
 
-  const handleDeleteAttribute = async (id) => {
-    // TODO: Implement delete logic
-    console.log('Delete attribute:', id);
+  const handleDeleteAttribute = (id) => {
+    setAttributes(attributes.filter(attribute => attribute.id !== id));
   };
 
-  const handleDeleteValue = async (attributeId, value) => {
-    // TODO: Implement value deletion logic
-    console.log('Delete value:', { attributeId, value });
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewAttribute(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const openAddValueModal = (attribute) => {
-    setSelectedAttribute(attribute);
-    setFormData({ name: '', value: '' });
-    setIsAddValueModalOpen(true);
+  const handleAddValue = (attributeId) => {
+    if (newValue.trim()) {
+      setAttributes(attributes.map(attr => {
+        if (attr.id === attributeId) {
+          return {
+            ...attr,
+            values: [...attr.values, newValue.trim()]
+          };
+        }
+        return attr;
+      }));
+      setNewValue('');
+    }
   };
 
-  const openViewMoreModal = (attribute) => {
-    setSelectedAttribute(attribute);
-    setIsViewMoreModalOpen(true);
+  const handleDeleteValue = (attributeId, value) => {
+    setAttributes(attributes.map(attr => {
+      if (attr.id === attributeId) {
+        return {
+          ...attr,
+          values: attr.values.filter(v => v !== value)
+        };
+      }
+      return attr;
+    }));
   };
 
-  const renderAttributeValues = (attribute) => {
-    const displayValues = attribute.values.slice(0, 3);
-    const hasMore = attribute.values.length > 3;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {displayValues.map((value, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 px-3 py-1 border border-black"
-          >
-            <span className="text-black">{value}</span>
-            <button
-              onClick={() => handleDeleteValue(attribute.id, value)}
-              className="text-black hover:text-red-600"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        {hasMore && (
-          <button
-            onClick={() => openViewMoreModal(attribute)}
-            className="px-3 py-1 border border-black text-black hover:bg-black hover:text-white transition-colors duration-200"
-          >
-            +{attribute.values.length - 3} More
-          </button>
-        )}
-        <button
-          onClick={() => openAddValueModal(attribute)}
-          className="px-3 py-1 border border-black text-black hover:bg-black hover:text-white transition-colors duration-200"
-        >
-          + Add Value
-        </button>
-      </div>
-    );
-  };
+  const filteredAttributes = attributes.filter(attribute =>
+    attribute.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-black">Attributes</h1>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="px-6 py-3 bg-black text-white border border-black hover:bg-white hover:text-black transition-colors duration-200"
+    <Box sx={{ px: 4 }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpen}
+          sx={{
+            background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #4e4376 0%, #2b5876 100%)',
+            },
+          }}
         >
-          Create Attribute
-        </button>
-      </div>
+          Add Attribute
+        </Button>
+      </Box>
 
-      {/* Attributes Table */}
-      <div className="border border-black">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-black">
-              <th className="px-6 py-4 text-left text-black font-semibold">Attribute Name</th>
-              <th className="px-6 py-4 text-left text-black font-semibold">Values</th>
-              <th className="px-6 py-4 text-left text-black font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attributes.map((attribute) => (
-              <tr key={attribute.id} className="border-b border-black">
-                <td className="px-6 py-4 text-black font-semibold">{attribute.name}</td>
-                <td className="px-6 py-4">
-                  {renderAttributeValues(attribute)}
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleDeleteAttribute(attribute.id)}
-                    className="text-black hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Search attributes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+              }}
+            />
+          </Box>
 
-      {/* Create Attribute Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="bg-white p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-black mb-6">Create Attribute</h2>
-            <form onSubmit={handleCreateAttribute} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-black mb-2">
-                  Attribute Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-black rounded-none focus:outline-none focus:border-black"
-                  placeholder="e.g., Size, Color, Material"
-                  required
-                />
-              </div>
+          <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Required</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Values</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredAttributes.map((attribute) => (
+                  <>
+                    <TableRow key={attribute.id}>
+                      <TableCell>{attribute.name}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={attribute.isRequired ? 'Yes' : 'No'}
+                          color={attribute.isRequired ? 'success' : 'default'}
+                          size="small"
+                          sx={{ borderRadius: 1 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={attribute.status}
+                          color={attribute.status === 'active' ? 'success' : 'default'}
+                          size="small"
+                          sx={{ borderRadius: 1 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          {attribute.values.slice(0, 3).map((value, index) => (
+                            <Chip
+                              key={index}
+                              label={value}
+                              size="small"
+                              onDelete={() => handleDeleteValue(attribute.id, value)}
+                              sx={{ borderRadius: 1 }}
+                            />
+                          ))}
+                          {attribute.values.length > 3 && (
+                            <Chip
+                              label={`+${attribute.values.length - 3} more`}
+                              size="small"
+                              onClick={() => setExpandedAttribute(expandedAttribute === attribute.id ? null : attribute.id)}
+                              sx={{ borderRadius: 1 }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => setExpandedAttribute(expandedAttribute === attribute.id ? null : attribute.id)}
+                        >
+                          {expandedAttribute === attribute.id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          sx={{ color: theme.palette.primary.main }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          sx={{ color: theme.palette.error.main }}
+                          onClick={() => handleDeleteAttribute(attribute.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
+                        <Collapse in={expandedAttribute === attribute.id}>
+                          <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+                            <Grid container spacing={2} alignItems="center">
+                              <Grid item xs={12}>
+                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                  All Values
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                  {attribute.values.map((value, index) => (
+                                    <Chip
+                                      key={index}
+                                      label={value}
+                                      size="small"
+                                      onDelete={() => handleDeleteValue(attribute.id, value)}
+                                      sx={{ borderRadius: 1 }}
+                                    />
+                                  ))}
+                                </Box>
+                              </Grid>
+                              <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <TextField
+                                    size="small"
+                                    placeholder="Add new value"
+                                    value={newValue}
+                                    onChange={(e) => setNewValue(e.target.value)}
+                                    sx={{ flexGrow: 1 }}
+                                  />
+                                  <Button
+                                    variant="contained"
+                                    onClick={() => handleAddValue(attribute.id)}
+                                    disabled={!newValue.trim()}
+                                    sx={{
+                                      background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
+                                      '&:hover': {
+                                        background: 'linear-gradient(135deg, #4e4376 0%, #2b5876 100%)',
+                                      },
+                                    }}
+                                  >
+                                    Add Value
+                                  </Button>
+                                </Box>
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
-              <div className="flex space-x-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-black text-white border border-black hover:bg-white hover:text-black transition-colors duration-200"
-                >
-                  Create
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="flex-1 px-6 py-3 border border-black text-black hover:bg-black hover:text-white transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Value Modal */}
-      {isAddValueModalOpen && (
-        <div className="fixed inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="bg-white p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-black mb-6">
-              Add Value to {selectedAttribute?.name}
-            </h2>
-            <form onSubmit={handleAddValue} className="space-y-6">
-              <div>
-                <label htmlFor="value" className="block text-black mb-2">
-                  Value
-                </label>
-                <input
-                  type="text"
-                  id="value"
-                  value={formData.value}
-                  onChange={(e) => setFormData(prev => ({ ...prev, value: e.target.value }))}
-                  className="w-full px-4 py-2 border border-black rounded-none focus:outline-none focus:border-black"
-                  placeholder={`e.g., ${selectedAttribute?.name === 'Size' ? 'Small, Medium, Large' : 'Red, Blue, Green'}`}
-                  required
-                />
-              </div>
-
-              <div className="flex space-x-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-black text-white border border-black hover:bg-white hover:text-black transition-colors duration-200"
-                >
-                  Add Value
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAddValueModalOpen(false)}
-                  className="flex-1 px-6 py-3 border border-black text-black hover:bg-black hover:text-white transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View More Values Modal */}
-      {isViewMoreModalOpen && (
-        <div className="fixed inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="bg-white p-8 max-w-md w-full">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-black">
-                {selectedAttribute?.name} Values
-              </h2>
-              <button
-                onClick={() => setIsViewMoreModalOpen(false)}
-                className="text-black hover:underline"
+      {/* Add Attribute Dialog */}
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>Add New Attribute</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Attribute Name"
+              name="name"
+              value={newAttribute.name}
+              onChange={handleInputChange}
+              variant="outlined"
+              sx={{ mb: 2 }}
+              required
+            />
+            <FormControl fullWidth>
+              <InputLabel>Required</InputLabel>
+              <Select
+                name="isRequired"
+                value={newAttribute.isRequired}
+                onChange={handleInputChange}
+                label="Required"
               >
-                Close
-              </button>
-            </div>
-            <div className="space-y-4">
-              {selectedAttribute?.values.map((value, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 border border-black"
-                >
-                  <span className="text-black">{value}</span>
-                  <button
-                    onClick={() => handleDeleteValue(selectedAttribute.id, value)}
-                    className="text-black hover:text-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                <MenuItem value={true}>Yes</MenuItem>
+                <MenuItem value={false}>No</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleClose} sx={{ mr: 1 }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleAddAttribute}
+            disabled={!newAttribute.name.trim()}
+            sx={{
+              background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4e4376 0%, #2b5876 100%)',
+              },
+            }}
+          >
+            Add Attribute
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 } 
