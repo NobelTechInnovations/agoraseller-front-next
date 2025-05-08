@@ -17,28 +17,28 @@ export default function BankDetailsPage() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    // Check if token exists and is valid
-    const authData = localStorage.getItem('sellerAuth');
-    if (!authData) {
-      router.push('/onboarding');
-      return;
-    }
+  // useEffect(() => {
+  //   // Check if token exists and is valid
+  //   const authData = localStorage.getItem('sellerAuth');
+  //   if (!authData) {
+  //     router.push('/onboarding');
+  //     return;
+  //   }
     
-    try {
-      const { token, expiry } = JSON.parse(authData);
-      const now = new Date().getTime();
+  //   try {
+  //     const { token, expiry } = JSON.parse(authData);
+  //     const now = new Date().getTime();
       
-      if (now > expiry) {
-        // Token expired
-        localStorage.removeItem('sellerAuth');
-        router.push('/onboarding');
-      }
-    } catch (error) {
-      localStorage.removeItem('sellerAuth');
-      router.push('/onboarding');
-    }
-  }, [router]);
+  //     if (now > expiry) {
+  //       // Token expired
+  //       localStorage.removeItem('sellerAuth');
+  //       router.push('/onboarding');
+  //     }
+  //   } catch (error) {
+  //     localStorage.removeItem('sellerAuth');
+  //     router.push('/onboarding');
+  //   }
+  // }, [router]);
   
   const validateForm = () => {
     const newErrors = {};
