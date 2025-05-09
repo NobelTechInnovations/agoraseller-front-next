@@ -41,7 +41,7 @@ const handler = NextAuth({
 
           if (res.ok && result.success && result.data?.token) {
             const decoded = parseJwt(result.data.token);
-
+            
             return {
               id: decoded?.id || credentials.email,
               email: credentials.email,
@@ -59,13 +59,15 @@ const handler = NextAuth({
     }),
   ],
   pages: {
-    signIn: "/login",
+    signIn: "/admin/login",
+    error: "/unauthorized",
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.accessToken = user.token;
         token.user = {
@@ -77,12 +79,15 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user = token.user;
-      session.accessToken = token.accessToken;
+      if (token) {
+        session.user = token.user;
+        session.accessToken = token.accessToken;
+      }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 });
 
 // ✅ ONLY export GET and POST — NOT authOptions

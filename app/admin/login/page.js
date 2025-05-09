@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import axiosInstance from '../../utils/axios';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import {
   Box,
   Container,
@@ -20,6 +20,7 @@ import { Visibility, VisibilityOff, Login as LoginIcon } from '@mui/icons-materi
 export default function AdminPage() {
   const theme = useTheme();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,25 +35,33 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post(`${process.env.NEXT_PUBLIC_ADMIN_API_URL}/auth`, {
+      const result = await signIn('credentials', {
+        redirect: false,
         email: formData.email,
         password: formData.password,
       });
 
-      if (response.data.success) {
-        // Store the token in localStorage
-        localStorage.setItem('adminToken', response.data.data.token);
-        // Redirect to dashboard
-        router.push('/admin/dashboard');
+      if (result.error) {
+        setError(result.error);
       } else {
-        setError(response.data.message || 'Login failed');
+        // Get the callback URL from the search params or default to dashboard
+        const callbackUrl = searchParams.get('callbackUrl') || '/admin/dashboard';
+        router.push(callbackUrl);
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Something went wrong. Try again.');
+      setError('Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   return (
@@ -165,7 +174,7 @@ export default function AdminPage() {
               autoComplete="email"
               autoFocus
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={handleChange}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
@@ -192,7 +201,7 @@ export default function AdminPage() {
               id="password"
               autoComplete="current-password"
               value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={handleChange}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
@@ -232,6 +241,8 @@ export default function AdminPage() {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={loading}
+              startIcon={<LoginIcon />}
               sx={{
                 mt: 3,
                 mb: 2,
@@ -247,10 +258,10 @@ export default function AdminPage() {
                   boxShadow: '0 6px 20px rgba(43, 88, 118, 0.4)',
                   transform: 'translateY(-1px)',
                 },
-                transition: 'all 0.3s ease',
+                transition: 'all 0.3s ease'
               }}
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </Box>
         </Paper>
