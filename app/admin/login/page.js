@@ -1,5 +1,15 @@
+import React, { Suspense } from 'react';
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginClient />
+    </Suspense>
+  );
+}
+
 'use client';
-import { Suspense } from 'react';
+
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -17,7 +27,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Login as LoginIcon } from '@mui/icons-material';
 
-export default function AdminPage() {
+function LoginClient() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,7 +54,6 @@ export default function AdminPage() {
       if (result.error) {
         setError(result.error);
       } else {
-        // Get the callback URL from the search params or default to dashboard
         const callbackUrl = searchParams.get('callbackUrl') || '/admin/dashboard';
         router.push(callbackUrl);
       }
@@ -58,14 +67,13 @@ export default function AdminPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -149,17 +157,7 @@ export default function AdminPage() {
           </Typography>
 
           {error && (
-            <Alert
-              severity="error"
-              sx={{
-                width: '100%',
-                mb: 2,
-                borderRadius: 2,
-                '& .MuiAlert-icon': {
-                  color: 'error.main',
-                },
-              }}
-            >
+            <Alert severity="error" sx={{ width: '100%', mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -259,7 +257,7 @@ export default function AdminPage() {
                   boxShadow: '0 6px 20px rgba(43, 88, 118, 0.4)',
                   transform: 'translateY(-1px)',
                 },
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
               }}
             >
               {loading ? 'Signing in...' : 'Sign In'}
@@ -268,6 +266,5 @@ export default function AdminPage() {
         </Paper>
       </Container>
     </Box>
-    </Suspense>
   );
 }
