@@ -1,5 +1,5 @@
 'use client';
-
+import { Suspense } from 'react';
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -65,6 +65,7 @@ export default function AdminPage() {
   };
 
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -267,5 +268,6 @@ export default function AdminPage() {
         </Paper>
       </Container>
     </Box>
+    </Suspense>
   );
 }
