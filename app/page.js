@@ -9,6 +9,7 @@ import CryptoJS from "crypto-js";
 
 export default function Home() {
   const router = useRouter();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -34,10 +35,9 @@ export default function Home() {
 
     try {
       const data = await sendOTP(phoneNumber);
-
       if (data.success) {
         setOtpSent(true);
-        setError(""); // Clear any previous errors
+        setError("");
       } else {
         setError(data.message || "Failed to send OTP. Please try again.");
         setOtpSent(false);
@@ -45,7 +45,6 @@ export default function Home() {
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong. Please try again.");
       setOtpSent(false);
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -63,246 +62,193 @@ export default function Home() {
 
     try {
       const data = await verifyOTP(phoneNumber, otp);
-      const secretKey = "24_agora_secret"; // keep it hidden
+      const secretKey = "24_agora_secret";
       const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
       if (data.status) {
-        // Save the phone number in localStorage/sessionStorage for the registration form
         sessionStorage.setItem('verified_phone', phoneNumber);
-        
-        // Redirect to the onboarding page with encrypted phone number as query parameter
         router.push(`/onboarding`);
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
       }
     } catch (err) {
       setError("Failed to verify OTP. Please try again.");
-      console.error(err);
     } finally {
       setVerifying(false);
     }
   };
 
-  // Handle resend OTP
-  const handleResendOTP = async () => {
-    setOtp("");
-    setOtpSent(false);
-    await handleSendOTP();
-  };
-
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white">
-      {/* Left Section - Login Form */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-6 md:p-12">
-        <div className="w-full max-w-md">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#6800cd]">SellOnAgora</h1>
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center">
+                <span className="ml-2 text-xl font-bold text-[#6800cd]">AgoraSeller Hub</span>
+              </Link>
+              <nav className="hidden md:flex space-x-8 ml-12">
+                <Link href="/learn" className="text-gray-700 hover:text-[#6800cd]">Learn</Link>
+                <Link href="/fees" className="text-gray-700 hover:text-[#6800cd]">Fees and Commission</Link>
+                <Link href="/grow" className="text-gray-700 hover:text-[#6800cd]">Grow with Us</Link>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className="text-gray-700 hover:text-[#6800cd] font-medium"
+              >
+                Login
+              </button>
+              <Link
+                href="/seller/login"
+                className="bg-[#6800cd] text-white px-4 py-2 rounded-md hover:bg-[#5400a3] transition-colors"
+              >
+                Start Selling
+              </Link>
+            </div>
           </div>
-          
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-black">Welcome to Agora Market</h2>
-            <p className="text-gray-600 mt-1">Create your account to start selling</p>
-          </div>
+        </div>
+      </header>
 
-          <div className="space-y-4">
+      {/* Main Content */}
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Enter Mobile Number" 
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={otpSent || loading}
-                />
-                <button 
-                  className={`absolute right-0 top-0 h-full px-3 ${
-                    loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-                  } text-white rounded-r-md font-medium transition-colors text-sm`}
-                  onClick={handleSendOTP}
-                  disabled={!isValidPhone(phoneNumber) || loading || otpSent}
+              <h1 className="text-4xl font-bold text-gray-900 mb-6">
+                Become a Seller on Agora Market and sell to 50 Crore+ customers
+              </h1>
+              <div className="grid grid-cols-2 gap-8 mt-12">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-[#f5eeff] flex items-center justify-center">
+                    <span className="text-[#6800cd] font-bold">14L+</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Seller community</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-[#f5eeff] flex items-center justify-center">
+                    <span className="text-[#6800cd] font-bold">24×7</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Online Business</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-[#f5eeff] flex items-center justify-center">
+                    <span className="text-[#6800cd] font-bold">7</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">days* payment</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-[#f5eeff] flex items-center justify-center">
+                    <span className="text-[#6800cd] font-bold">19k+</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Pincodes served</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Login Modal */}
+      {isLoginOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/20 " onClick={() => setIsLoginOpen(false)}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 pointer-events-auto shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Login</h2>
+                <button
+                  onClick={() => setIsLoginOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
                 >
-                  {loading ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-              {!error && !isValidPhone(phoneNumber) && phoneNumber.length > 0 && (
-                <p className="text-red-500 text-sm mt-1">Please enter a valid phone number (10-15 digits)</p>
-              )}
-            </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Enter Mobile Number" 
+                      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      disabled={otpSent || loading}
+                    />
+                    <button 
+                      className={`absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 ${
+                        loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+                      } text-white rounded-md font-medium transition-colors text-sm`}
+                      onClick={handleSendOTP}
+                      disabled={!isValidPhone(phoneNumber) || loading || otpSent}
+                    >
+                      {loading ? 'Sending...' : otpSent ? 'Sent' : 'Send OTP'}
+                    </button>
+                  </div>
+                  {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                </div>
 
-            <div>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Enter OTP" 
-                  className={`w-full p-2 border ${error && !otpSent ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent ${!otpSent ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  disabled={!otpSent || loading}
-                />
                 {otpSent && (
-                  <button 
-                    className="text-[#6800cd] text-xs font-medium absolute right-3 top-1/2 transform -translate-y-1/2"
-                    onClick={handleResendOTP}
-                    disabled={loading || verifying}
-                  >
-                    Resend
-                  </button>
+                  <div>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Enter OTP" 
+                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                      />
+                      <button 
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#6800cd] text-sm font-medium"
+                        onClick={() => {
+                          setOtp("");
+                          setOtpSent(false);
+                          handleSendOTP();
+                        }}
+                      >
+                        Resend
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </div>
-              {error && !otpSent && (
-                <p className="text-red-500 text-sm mt-1">{error}</p>
-              )}
-            </div>
 
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                id="whatsapp-updates" 
-                className="h-3.5 w-3.5 text-[#6800cd] focus:ring-[#6800cd] border-gray-300 rounded"
-                checked={whatsappUpdates}
-                onChange={(e) => setWhatsappUpdates(e.target.checked)}
-              />
-              <label htmlFor="whatsapp-updates" className="ml-2 block text-xs text-gray-700">
-                I want to receive important updates on WhatsApp
-              </label>
-            </div>
+                <button 
+                  className={`w-full p-3 ${
+                    otpSent && otp ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+                  } text-white rounded-md font-medium transition-colors`}
+                  onClick={handleContinue}
+                  disabled={!otpSent || !otp || verifying}
+                >
+                  {verifying ? 'Verifying...' : 'Continue'}
+                </button>
 
-            <button 
-              className={`w-full p-2 ${
-                otpSent && otp.length > 0 ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-              } text-white rounded-md font-medium transition-colors text-sm`}
-              onClick={handleContinue}
-              disabled={!otpSent || otp.length === 0 || verifying}
-            >
-              {verifying ? 'Verifying...' : 'Continue'}
-            </button>
-
-            <p className="text-xs text-center text-gray-600">
-              By clicking you agree to our{" "}
-              <Link href="#" className="text-[#6800cd]">Terms & Conditions</Link>
-              {" "}and{" "}
-              <Link href="#" className="text-[#6800cd]">Privacy Policy</Link>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Section - Info Graphics */}
-      <div className="w-full md:w-1/2 bg-gray-50 p-6 md:p-12 flex flex-col justify-center">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-lg md:text-xl font-semibold text-black mb-6">
-            Grow your business faster by selling on Agora Market
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-black">11 lakh+</h3>
-                <p className="text-xs text-gray-600">Suppliers are selling commission-free</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-black">19000+</h3>
-                <p className="text-xs text-gray-600">Pincodes supported for delivery</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-black">Crore of</h3>
-                <p className="text-xs text-gray-600">Customers buy across India</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#f5eeff] flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-black">700+</h3>
-                <p className="text-xs text-gray-600">Categories to sell</p>
+                <p className="text-xs text-center text-gray-600">
+                  By continuing, you agree to our{" "}
+                  <Link href="#" className="text-[#6800cd]">Terms & Conditions</Link>
+                  {" "}and{" "}
+                  <Link href="#" className="text-[#6800cd]">Privacy Policy</Link>
+                </p>
               </div>
             </div>
           </div>
-
-          <div className="mt-12">
-            <h3 className="text-base font-semibold text-black mb-3">All you need to sell on SellOnAgora is:</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="w-5 h-5 rounded-full bg-[#f5eeff] flex items-center justify-center mr-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-gray-700">Tax Details</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-
-              <div>
-                <div className="flex items-center ml-9">
-                  <span className="w-1 h-1 rounded-full bg-gray-700 mr-2"></span>
-                  <span className="text-gray-700">Enrolment ID/UIN</span>
-                  <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">For Non-GST sellers</span>
-                  <span className="ml-1 text-xs bg-[#6800cd] text-white px-2 py-0.5 rounded">New</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center ml-9">
-                  <span className="w-1 h-1 rounded-full bg-gray-700 mr-2"></span>
-                  <span className="text-gray-700">GSTIN</span>
-                  <span className="ml-2 text-xs text-gray-500">Regular & Composition GST sellers</span>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <div className="w-5 h-5 rounded-full bg-[#f5eeff] flex items-center justify-center mr-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#6800cd]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-gray-700">Bank Account</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-center">
-            <Image
-              src="/store.png"
-              alt="Store illustration"
-              width={200}
-              height={150}
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

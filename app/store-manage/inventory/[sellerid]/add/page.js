@@ -189,7 +189,7 @@ const AddProduct = () => {
       <div className="mb-8">
         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Create New Listing</h3>
 
-        <div className="bg-gray-200 p-4 mb-4">
+        <div className="bg-blue-100 p-4 mb-4 rounded-sm">
           <p className="text-sm text-gray-600">
             <b>Note:</b> you must specify all product data such as title, description, and keywords in the respective national language of desired region.
           </p>
@@ -198,7 +198,7 @@ const AddProduct = () => {
         <div className="flex gap-6">
           {/* Product Form - 2/3 width */}
           <div className="w-2/3">
-            <div className="bg-white p-6 rounded-lg border border-gray-300">
+            <div className="bg-white p-6 rounded-sm border border-gray-200">
               <form>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 bg-gray-100 p-4">
@@ -264,7 +264,7 @@ const AddProduct = () => {
                                 <button
                                   type="button"
                                   onClick={handleBackClick}
-                                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                                  className="text-sm text-blue-600 hover:text-blue-800"
                                 >
                                   Back
                                 </button>
@@ -280,7 +280,7 @@ const AddProduct = () => {
                                   {category.hasChildren ? (
                                     <button 
                                       type="button"
-                                      className="text-sm text-gray-500 hover:text-indigo-600"
+                                      className="text-sm text-gray-500 hover:text-blue-600"
                                       onClick={() => handleNextClick(category)}
                                     >
                                       Next
@@ -288,7 +288,7 @@ const AddProduct = () => {
                                   ) : (
                                     <button 
                                       type="button"
-                                      className="text-sm text-indigo-600 hover:text-indigo-800"
+                                      className="text-sm text-blue-600 hover:text-blue-800"
                                       onClick={() => handleNextClick(category)}
                                     >
                                       Select
@@ -310,7 +310,7 @@ const AddProduct = () => {
                     onClick={handleSaveAndNext}
                     className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md ${
                       selectedCategory 
-                        ? 'text-purple-700 border-purple-700 hover:bg-purple-100' 
+                        ? 'text-blue-700 border-blue-700 hover:bg-blue-100' 
                         : 'text-gray-400 border-gray-300 cursor-not-allowed'
                     } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                     disabled={!selectedCategory}

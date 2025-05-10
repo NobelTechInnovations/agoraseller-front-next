@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const PUBLIC_PATHS = ['/unauthorized', '/api/auth', '/admin/login', '/onboarding'];
+const PUBLIC_PATHS = [
+  '/unauthorized',
+  '/api/auth',
+  '/admin/login',
+  '/seller/login',
+  '/store-manage',
+  '/store-manage/:path*',
+];
+
+const ADMIN_ONLY_PATHS = ['/admin/dashboard', '/admin/dashboard/'];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
 
-  // Skip public files or paths
+  // Skip middleware for public files and routes
   if (
     PUBLIC_PATHS.some(path => pathname.startsWith(path)) ||
     pathname.startsWith('/_next') ||
@@ -17,33 +26,41 @@ export async function middleware(req) {
   }
 
   try {
-    const token = await getToken({ 
-      req, 
+    const token = await getToken({
+      req,
       secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: process.env.NODE_ENV === 'production'
+      secureCookie: process.env.NODE_ENV === 'production',
     });
 
-    // Not logged in, redirect to login
+    // If no token, and trying to access admin route, don't redirect to it
     if (!token) {
-      const url = new URL('/admin/login', req.url);
-      url.searchParams.set('callbackUrl', encodeURI(req.url));
-      return NextResponse.redirect(url);
+      if (pathname.startsWith('/admin')) {
+        // If trying to access admin routes without login, do NOT redirect to admin login
+        return NextResponse.redirect(new URL('/seller/login', req.url));
+      }
+
+      // Redirect all other paths to seller login
+      const sellerLoginUrl = new URL('/seller/login', req.url);
+      sellerLoginUrl.searchParams.set('callbackUrl', encodeURI(req.url));
+      return NextResponse.redirect(sellerLoginUrl);
     }
 
     const role = token.user?.role;
 
-    // Admin-only routes
-    const adminRoutes = ['/admin/dashboard', '/admin/dashboard/'];
+    // If user is not admin, block access to admin routes
+    if (pathname.startsWith('/admin') && role !== 'admin') {
+      return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
 
-    if (adminRoutes.some(route => pathname.startsWith(route)) && role !== 'admin') {
+    // If seller tries to access admin dashboard directly
+    if (ADMIN_ONLY_PATHS.some(path => pathname.startsWith(path)) && role !== 'admin') {
       return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
 
     return NextResponse.next();
   } catch (error) {
     console.error('Middleware error:', error);
-    // On error, redirect to login
-    return NextResponse.redirect(new URL('/admin/login', req.url));
+    return NextResponse.redirect(new URL('/seller/login', req.url));
   }
 }
 
@@ -51,6 +68,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/store-manage/:path*',
-    '/onboarding/:path*'
+    '/onboarding/:path*',
+    '/seller/:path*',
   ],
 };

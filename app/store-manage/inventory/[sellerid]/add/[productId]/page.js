@@ -168,7 +168,7 @@ const ProductDetailsPage = ({ params }) => {
           <div className="flex items-center">
             {productId.split('>').map((category, index, array) => (
               <div key={index} className="flex items-center">
-                <span className={index === array.length - 1 ? "font-medium text-indigo-600" : ""}>
+                <span className={index === array.length - 1 ? "font-medium text-blue-600" : ""}>
                   {category.trim()}
                 </span>
                 {index < array.length - 1 && <span className="mx-2">›</span>}
@@ -215,7 +215,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="color"
                           value={color}
                           onChange={(e) => setColor(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
                           placeholder="e.g. Red, Blue, Black"
                         />
                       </div>
@@ -230,7 +230,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="fabric"
                           value={fabric}
                           onChange={(e) => setFabric(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
                           placeholder="e.g. Cotton, Polyester, Silk"
                         />
                       </div>
@@ -245,7 +245,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="pattern"
                           value={pattern}
                           onChange={(e) => setPattern(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
                           placeholder="e.g. Solid, Striped, Floral"
                         />
                       </div>
@@ -269,7 +269,7 @@ const ProductDetailsPage = ({ params }) => {
                             id="mrpPrice"
                             value={mrpPrice}
                             onChange={(e) => setMrpPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-14 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -290,7 +290,7 @@ const ProductDetailsPage = ({ params }) => {
                             id="sellingPrice"
                             value={sellingPrice}
                             onChange={(e) => setSellingPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-14 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -309,7 +309,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="stockQty"
                           value={stockQty}
                           onChange={(e) => setStockQty(e.target.value)}
-                          className={`mt-1 block w-full border ${errors.stockQty ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                          className={`mt-1 block w-full border ${errors.stockQty ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                           placeholder="0"
                           min="0"
                           step="1"
@@ -327,7 +327,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="productWeight"
                           value={productWeight}
                           onChange={(e) => setProductWeight(e.target.value)}
-                          className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-900'}  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2`}
+                          className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                           placeholder="0"
                           min="0"
                           step="0.01"
@@ -350,7 +350,7 @@ const ProductDetailsPage = ({ params }) => {
                                 type="checkbox"
                                 checked={hasVariations}
                                 onChange={(e) => setHasVariations(e.target.checked)}
-                                className="form-checkbox h-5 w-5 text-indigo-600"
+                                className="form-checkbox h-5 w-5 text-blue-600"
                               />
                               <span className="ml-2 text-sm text-gray-700">Yes, this product has variations</span>
                             </label>
@@ -370,7 +370,7 @@ const ProductDetailsPage = ({ params }) => {
                                     type="checkbox"
                                     checked={selectedAttributes.includes(attr.id)}
                                     onChange={() => handleAttributeChange(attr.id)}
-                                    className="form-checkbox h-4 w-4 text-indigo-600"
+                                    className="form-checkbox h-4 w-4 text-blue-600"
                                     disabled={!selectedAttributes.includes(attr.id) && selectedAttributes.length >= 3}
                                   />
                                   <span className={`ml-2 text-sm ${!selectedAttributes.includes(attr.id) && selectedAttributes.length >= 3 ? 'text-gray-400' : 'text-gray-700'}`}>
@@ -428,7 +428,7 @@ const ProductDetailsPage = ({ params }) => {
                                                 );
                                                 setVariations(updatedVariations);
                                               }}
-                                              className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                              className="block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 text-sm p-2"
                                               placeholder={`Enter ${attr}`}
                                             />
                                           </td>
@@ -445,7 +445,7 @@ const ProductDetailsPage = ({ params }) => {
                                               );
                                               setVariations(updatedVariations);
                                             }}
-                                            className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                            className="block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 text-sm p-2"
                                             placeholder="0.00"
                                             min="0"
                                             step="0.01"
@@ -463,7 +463,7 @@ const ProductDetailsPage = ({ params }) => {
                                               );
                                               setVariations(updatedVariations);
                                             }}
-                                            className="block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2"
+                                            className="block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 text-sm p-2"
                                             placeholder="0"
                                             min="0"
                                             step="1"
@@ -512,7 +512,7 @@ const ProductDetailsPage = ({ params }) => {
                                   <button
                                     type="button"
                                     onClick={handleAddVariation}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium  text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium  text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                   >
                                     Add New Variation
                                   </button>
@@ -541,7 +541,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="brand"
                           value={brand}
                           onChange={(e) => setBrand(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900  focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
                           placeholder="e.g. Nike, Apple, Samsung"
                         />
                       </div>
@@ -556,7 +556,7 @@ const ProductDetailsPage = ({ params }) => {
                           id="manufacturer"
                           value={manufacturer}
                           onChange={(e) => setManufacturer(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
                         />
                       </div>
                     </div>
@@ -571,7 +571,7 @@ const ProductDetailsPage = ({ params }) => {
                       <button
                         type="button"
                         onClick={handleSaveAndNext}
-                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-purple-700 border-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-blue-700 border-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
                         Save and Next
                       </button>
