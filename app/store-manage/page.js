@@ -19,8 +19,8 @@ export default function StoreDashboard() {
         {/* Pending Orders */}
         <Link href="/store-manage/orders" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-purple-600 text-lg">📦</span>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+              <span className="text-blue-600 text-lg">📦</span>
             </div>
             <div>
               <p className="text-sm text-gray-600">Pending Orders</p>
@@ -73,13 +73,13 @@ export default function StoreDashboard() {
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-            <span className="mr-2 text-purple-600">📈</span> Business Insights
+            <span className="mr-2 text-blue-600">📈</span> Business Insights
           </h2>
           <div className="flex items-center space-x-2">
             <button 
               className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                 activeTab === 'daily' 
-                  ? 'bg-purple-100 text-purple-700' 
+                  ? 'bg-blue-100 text-blue-700' 
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setActiveTab('daily')}
@@ -89,7 +89,7 @@ export default function StoreDashboard() {
             <button 
               className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                 activeTab === 'weekly' 
-                  ? 'bg-purple-100 text-purple-700' 
+                  ? 'bg-blue-100 text-blue-700' 
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setActiveTab('weekly')}
@@ -99,7 +99,7 @@ export default function StoreDashboard() {
             <button 
               className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                 activeTab === 'monthly' 
-                  ? 'bg-purple-100 text-purple-700' 
+                  ? 'bg-blue-100 text-blue-700' 
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
               onClick={() => setActiveTab('monthly')}
@@ -152,7 +152,7 @@ export default function StoreDashboard() {
         <div className="mt-6 text-center">
           <Link 
             href="/store-manage/analytics" 
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
           >
             View More Details
           </Link>

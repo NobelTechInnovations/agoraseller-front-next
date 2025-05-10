@@ -25,9 +25,9 @@ export default function DashboardLayout({ children }) {
     { name: 'Orders', href: '/store-manage/orders' },
    
     {
-      name: 'Listing',
+      name: 'Listing', href:'/store-manage/inventory/listing',
       items: [
-        { name: 'Product Listing', href: '/store-manage/inventory/dfs468g/add' },
+        { name: 'Product Listing', href: '/store-manage/inventory/listing' },
         { name: 'Add Product', href: '/store-manage/inventory/dfs468g/add' },
         { name: 'Warehouse', href: '/store-manage/warehouse' },
         { name: 'Inventory Excel', href: '/store-manage/inventory-excel' },
@@ -121,23 +121,18 @@ export default function DashboardLayout({ children }) {
                     onMouseEnter={() => item.items && setActiveDropdown(index)}
                     onMouseLeave={() => setActiveDropdown(null)}
                   >
-                    {item.href ? (
-                      <Link 
-                        href={item.href}
-                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        {item.name}
-                      </Link>
-                    ) : (
-                      <button 
-                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
-                      >
-                        {item.name}
+                    <Link 
+                      href={item.href || '#'}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
+                    >
+                      {item.name}
+                      {item.items && (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
-                      </button>
-                    )}
+                      )}
+                    </Link>
+
                     
                     {/* Dropdown menu */}
                     {item.items && activeDropdown === index && (

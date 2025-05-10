@@ -1,13 +1,18 @@
 // API base URL
-const BASE_URL = process.env.NEXT_PUBLIC_SELLER_API_URL;
+let BASE_URL = process.env.NEXT_PUBLIC_SELLER_API_URL;
+
+if (process.env.NODE_ENV === 'development') {
+  BASE_URL = 'http://localhost:5000/v1/seller';
+}
 
 /**
  * Send OTP to the provided phone number
  * @param {string} phone - Phone number (10-15 digits)
  * @returns {Promise} - API response
- */
+*/
 export const sendOTP = async (phone) => {
   try { 
+
     const response = await fetch(`${BASE_URL}/user/request-otp`, {
       method: "POST",
       headers: {
@@ -15,7 +20,7 @@ export const sendOTP = async (phone) => {
       },
       body: JSON.stringify({ phone }),
     });
-
+    
     return await response.json();
   } catch (error) {
     console.error("Error sending OTP:", error);
@@ -38,7 +43,7 @@ export const verifyOTP = async (phone, otp) => {
       },
       body: JSON.stringify({ phone, otp }),
     });
-
+    
     return await response.json();
   } catch (error) {
     console.error("Error verifying OTP:", error);

@@ -66,12 +66,15 @@ export default function Home() {
       const secretKey = "24_agora_secret"; // keep it hidden
       const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
+      console.log(data);
       if (data.status) {
         // Save the phone number in localStorage/sessionStorage for the registration form
         sessionStorage.setItem('verified_phone', phoneNumber);
-        
-        // Redirect to the onboarding page with encrypted phone number as query parameter
-        router.push(`/onboarding`);
+        if(data.isNewUser === true){
+          router.push(`/onboarding`);
+        }else{
+          router.push(`/store-manage`);
+        }
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
       }
