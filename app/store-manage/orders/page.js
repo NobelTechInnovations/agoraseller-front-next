@@ -1,13 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import OrderTable from '../../components/OrderTable';
+import axiosInstance from '../../utils/axios';
+import { getSession } from 'next-auth/react';
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('pending');
 
+  const [order, setOrder] = useState([]);
+ 
+  
+  useEffect(
+    () => {
+      const fetchOrder = async () => {
+        const session = await getSession();
+      
+        const order = await axiosInstance.get('/order/list', {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });        
+        setOrder(order);
+        console.log(order);
+      }
+      fetchOrder();
+    }, []
+  )
   return (
     <div className="p-3 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4 border border-gray-300 bg-white shadow rounded-lg px-3 py-2">

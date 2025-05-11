@@ -1,39 +1,18 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_ADMIN_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_SELLER_API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// Request interceptor
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('adminToken');
-    
-    // If token exists, add it to headers
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+export const setAuthToken = (token) => {
+  if (token) {
+    axiosInstance.defaults.headers.common['Authorization'] =`Bearer ${token}`;
+  } else {
+    delete axiosInstance.defaults.headers.common['Authorization'];
   }
-);
+};
 
-// Response interceptor
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem('adminToken');
-      window.location.href = '/admin/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default axiosInstance; 
+export default axiosInstance;

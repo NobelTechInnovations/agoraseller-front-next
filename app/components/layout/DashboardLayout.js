@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Sidebar from './sidebar';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 
 
 export default function DashboardLayout({ children }) {
@@ -11,21 +12,19 @@ export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  
+
   const handleLogout = () => {
     // Remove auth token from localStorage
     localStorage.removeItem('sellerAuth');
-    
-    // Redirect to login/onboarding page
-    router.push('/');
+    signOut({ callbackUrl: '/' });
   };
 
   const navigationItems = [
     { name: 'Home', href: '/store-manage' },
     { name: 'Orders', href: '/store-manage/orders' },
-   
+
     {
-      name: 'Listing', href:'/store-manage/inventory/listing',
+      name: 'Listing', href: '/store-manage/inventory/listing',
       items: [
         { name: 'Product Listing', href: '/store-manage/inventory/listing' },
         { name: 'Add Product', href: '/store-manage/inventory/dfs468g/add' },
@@ -52,7 +51,7 @@ export default function DashboardLayout({ children }) {
       ]
     }
   ];
-  
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar with close button */}
@@ -60,13 +59,13 @@ export default function DashboardLayout({ children }) {
         {/* Store profile header */}
         <div className="p-4 flex items-center justify-between border-b border-gray-700">
           <div className="flex items-center gap-2">
-            
+
             <div className="text-sm text-white">
               <p className="font-bold">ByJaipuri Legacy</p>
             </div>
           </div>
           {/* Close button */}
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
             className="p-1.5 rounded-lg hover:bg-gray-700 text-white hover:text-white transition-colors"
             aria-label="Close sidebar"
@@ -89,7 +88,7 @@ export default function DashboardLayout({ children }) {
               <div className="flex items-center gap-4">
                 {/* Store Name */}
                 <div className="flex items-center gap-2">
-                <img
+                  <img
                     src="https://www.freepnglogos.com/uploads/flipkart-logo-png/flipkart-com-logo-internet-ltd-state-of-kerala-10.png"
                     alt="logo"
                     width={120}
@@ -105,23 +104,23 @@ export default function DashboardLayout({ children }) {
 
               {/* Middle section: Navigation */}
               <nav className="flex items-center gap-1 flex-1 ml-5">
-                
-              <Link 
+
+                <Link
                   href={`/store-manage/inventory/dfs468g/add`}
                   className="px-4 py-1 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
-                 
+
                   Add Product
                 </Link>
 
                 {navigationItems.map((item, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="relative"
                     onMouseEnter={() => item.items && setActiveDropdown(index)}
                     onMouseLeave={() => setActiveDropdown(null)}
                   >
-                    <Link 
+                    <Link
                       href={item.href || '#'}
                       className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
                     >
@@ -133,7 +132,7 @@ export default function DashboardLayout({ children }) {
                       )}
                     </Link>
 
-                    
+
                     {/* Dropdown menu */}
                     {item.items && activeDropdown === index && (
                       <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
@@ -149,7 +148,7 @@ export default function DashboardLayout({ children }) {
                       </div>
                     )}
                   </div>
-                  
+
                 ))}
 
 
@@ -158,7 +157,7 @@ export default function DashboardLayout({ children }) {
               {/* Right section: Actions */}
               <div className="flex items-center gap-4">
                 {/* Add Product Button */}
-                <Link 
+                <Link
                   href={`/store-manage/inventory/dfs468g/add`}
                   className="px-4 py-1 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
@@ -175,10 +174,10 @@ export default function DashboardLayout({ children }) {
                       <span className="text-sm font-medium">Store Admin</span>
                       <span className="text-xs text-gray-500">ID: STORE123456</span>
                     </div>
-                    <svg 
+                    <svg
                       className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
+                      fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

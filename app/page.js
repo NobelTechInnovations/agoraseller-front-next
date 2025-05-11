@@ -6,6 +6,8 @@ import { useState } from "react";
 import { sendOTP, verifyOTP } from "./services/api";
 import { useRouter } from "next/navigation";
 import CryptoJS from "crypto-js";
+import { signIn } from 'next-auth/react';
+import { getSession } from 'next-auth/react';
 
 export default function Home() {
   const router = useRouter();
@@ -61,20 +63,25 @@ export default function Home() {
     setError("");
 
     try {
-      const data = await verifyOTP(phoneNumber, otp);
+      const result = await signIn('credentials', {
+        redirect: false,
+        phone: phoneNumber,
+        otp: otp,
+        auth: 'seller'
+      });
 
-      const secretKey = "24_agora_secret";
-      const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
-      if (data.success) {
-        if(data.data.isNewUser){
-          sessionStorage.setItem('verified_phone', phoneNumber);
-          router.push(`/onboarding`);
-        }else{
-          router.push(`/store-manage`);
-        }
+      if (result.error) {
+        setError(result.error);
       } else {
-        setError(data.message || "Invalid OTP. Please try again.");
+        const session = await getSession();
+        const { user } = session;
+        if (user.isNewUser) {
+          router.push('/onboarding');
+        }else{
+          router.push('/store-manage');
+        }
+       
       }
     } catch (err) {
       setError("Failed to verify OTP. Please try again.");
@@ -82,6 +89,7 @@ export default function Home() {
       setVerifying(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -161,7 +169,7 @@ export default function Home() {
               </div>
             </div>
             <div className="relative">
-              
+
             </div>
           </div>
         </div>
@@ -184,22 +192,21 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <div className="relative">
-                    <input 
-                      type="text" 
-                      placeholder="Enter Mobile Number" 
+                    <input
+                      type="text"
+                      placeholder="Enter Mobile Number"
                       className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       disabled={otpSent || loading}
                     />
-                    <button 
-                      className={`absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 ${
-                        loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-                      } text-white rounded-md font-medium transition-colors text-sm`}
+                    <button
+                      className={`absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 ${loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+                        } text-white rounded-md font-medium transition-colors text-sm`}
                       onClick={handleSendOTP}
                       disabled={!isValidPhone(phoneNumber) || loading || otpSent}
                     >
@@ -212,14 +219,14 @@ export default function Home() {
                 {otpSent && (
                   <div>
                     <div className="relative">
-                      <input 
-                        type="text" 
-                        placeholder="Enter OTP" 
+                      <input
+                        type="text"
+                        placeholder="Enter OTP"
                         className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6800cd] focus:border-transparent"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
                       />
-                      <button 
+                      <button
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#6800cd] text-sm font-medium"
                         onClick={() => {
                           setOtp("");
@@ -233,10 +240,9 @@ export default function Home() {
                   </div>
                 )}
 
-                <button 
-                  className={`w-full p-3 ${
-                    otpSent && otp ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
-                  } text-white rounded-md font-medium transition-colors`}
+                <button
+                  className={`w-full p-3 ${otpSent && otp ? 'bg-[#6800cd] hover:bg-[#5400a3]' : 'bg-gray-400'
+                    } text-white rounded-md font-medium transition-colors`}
                   onClick={handleContinue}
                   disabled={!otpSent || !otp || verifying}
                 >

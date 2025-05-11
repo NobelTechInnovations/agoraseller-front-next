@@ -1,11 +1,13 @@
 // API base URL
 let BASE_URL = process.env.NEXT_PUBLIC_SELLER_API_URL;
 
-if (process.env.NODE_ENV === 'development') {
-  BASE_URL = 'http://localhost:5000/v1/seller';
-}
+// console.log(BASE_URL,'OR')
+// if (process.env.NODE_ENV === 'development') {
+//   BASE_URL = 'http://localhost:5000/v1/seller';
+// }
 
 import axios from "axios";
+import axiosInstance from "../utils/axios";
 
 /**
  * Send OTP to the provided phone number
@@ -13,12 +15,12 @@ import axios from "axios";
  * @returns {Promise} - API response
 */
 export const sendOTP = async (phone) => {
-  try { 
+  try {
 
-    const response = await  axios.post(`${BASE_URL}/user/request-otp`, {
+    const response = await axios.post(`${BASE_URL}/user/request-otp`, {
       phone,
     });
-    
+
     return await response.data;
   } catch (error) {
     console.error("Error sending OTP:", error);
@@ -38,7 +40,7 @@ export const verifyOTP = async (phone, otp) => {
       phone,
       otp,
     });
-    
+
     return response.data;
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -74,18 +76,10 @@ export const registerSeller = async (sellerData) => {
  * @param {string} token - Authentication token
  * @returns {Promise} - API response
  */
-export const addBankDetails = async (bankDetails, token) => {
+export const addBankDetails = async (bankDetails) => {
   try {
-    const response = await fetch(`${BASE_URL}/user/add-bank-details`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify(bankDetails),
-    });
-
-    return await response.json();
+    const response = await axiosInstance.post(`${BASE_URL}/user/add-bank-details`, bankDetails);
+    return await response.data;
   } catch (error) {
     console.error("Error adding bank details:", error);
     throw error;
@@ -122,18 +116,11 @@ export const addWarehouse = async (warehouseData, token) => {
  * @param {string} token - Authentication token
  * @returns {Promise} - API response
  */
-export const completeBusinessProfile = async (businessData, token) => {
+export const completeBusinessProfile = async (businessData) => {
   try {
-    const response = await fetch(`${BASE_URL}/user/business-data`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify(businessData),
-    });
+    const response = await axiosInstance.post(`${BASE_URL}/user/business-data`, businessData);
 
-    return await response.json();
+    return await response.data;
   } catch (error) {
     console.error("Error completing business profile:", error);
     throw error;

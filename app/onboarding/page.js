@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { registerSeller } from "../services/api";
 import OnboardingSteps from "../components/OnboardingSteps";
+import { getSession } from "next-auth/react";
 
 export default function OnboardingPage() {
   return (
@@ -21,7 +22,7 @@ function OnboardingContent() {
   const [selectedOption, setSelectedOption] = useState("enrolment");
   const [enrolmentID, setEnrolmentID] = useState("");
   const [provideDetailsLater, setProvideDetailsLater] = useState(false);
-  
+
   // Personal details form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +30,14 @@ function OnboardingContent() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const session = await getSession();
+      setPhone(session?.user?.phone)
+    };
+    fetchUser();
+  }, []);
 
   // Check for verified phone from sessionStorage if not in URL params
   useEffect(() => {
@@ -46,32 +55,32 @@ function OnboardingContent() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!name.trim()) newErrors.name = "Name is required";
-    
+
     if (!email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Email is invalid";
     }
-    
+
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleRegistration = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const data = await registerSeller({
         name,
@@ -79,15 +88,15 @@ function OnboardingContent() {
         phone,
         password
       });
-      
-      if (data.status) {
+
+      if (data.success) {
         // Save token to localStorage with expiration
         const tokenData = {
           token: data.data.token,
           expiry: new Date().getTime() + (2 * 24 * 60 * 60 * 1000) // 2 days in milliseconds
         };
         localStorage.setItem('sellerAuth', JSON.stringify(tokenData));
-        
+
         // Navigate to the business details page
         router.push("/onboarding/business-details");
       } else {
@@ -124,7 +133,7 @@ function OnboardingContent() {
                   {errors.api}
                 </div>
               )}
-              
+
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name*
@@ -139,7 +148,7 @@ function OnboardingContent() {
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
               </div>
-              
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address*
@@ -154,7 +163,7 @@ function OnboardingContent() {
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
               </div>
-              
+
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                   Phone Number*
@@ -168,7 +177,7 @@ function OnboardingContent() {
                   placeholder="Your verified phone number"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Password*
@@ -183,9 +192,9 @@ function OnboardingContent() {
                 />
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
               </div>
-              
+
               <div className="mt-6">
-                <button 
+                <button
                   type="submit"
                   className={`w-full p-2 bg-[#6800cd] hover:bg-[#5400a3] text-white rounded-md font-medium transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                   disabled={isLoading}
@@ -203,7 +212,7 @@ function OnboardingContent() {
         <div className="h-full flex flex-col justify-center items-center p-6">
           <div className="max-w-md">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Why sell on Agora Market?</h2>
-            
+
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 flex-shrink-0">
@@ -255,10 +264,10 @@ function OnboardingContent() {
             </div>
 
             <div className="mt-6">
-              <Image 
-                src="/sellingbenefits.png" 
-                alt="Benefits of selling on Agora" 
-                width={350} 
+              <Image
+                src="/sellingbenefits.png"
+                alt="Benefits of selling on Agora"
+                width={350}
                 height={200}
                 className="object-contain"
               />

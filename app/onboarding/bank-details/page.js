@@ -85,9 +85,10 @@ export default function BankDetailsPage() {
       };
       
       // Make the API call using the service
-      const data = await addBankDetails(payload, authData.token);
-      
-      if (data.status) {
+      const data = await addBankDetails(payload);
+      console.log(data);
+      if (data.success) {
+        
         // Navigate to the thank you page after successful submission
         router.push("/onboarding/thank-you");
       } else {

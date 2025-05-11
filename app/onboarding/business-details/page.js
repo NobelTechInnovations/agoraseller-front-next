@@ -100,7 +100,7 @@ export default function BusinessDetailsPage() {
       // Make the API call using the service
       const data = await completeBusinessProfile(payload, authData.token);
       
-      if (data.status) {
+      if (data.success) {
         // Navigate to the bank details page
         router.push("/onboarding/bank-details");
       } else {
