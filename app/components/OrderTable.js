@@ -18,13 +18,32 @@ export default function OrderTable({ orders }) {
             <th className="p-2">Customer</th>
             <th className="p-2">Weight</th>
             <th className="p-2">Fulfilment</th>
-            <th className="p-2">View Product</th>
+            <th className="p-2">Actions</th>
           </tr>
         </thead>
         <tbody>
           {orders && orders.length > 0 ? orders.map((order, index) => (
             <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-              <td className="p-2 text-blue-600">{order.id}</td>
+              <td className="p-2">
+                <div className="flex items-center gap-2">
+                  <img 
+                    src="https://karamonline.com/media/catalog/product/cache/509850b11aa2210ac1d2c31fec93d22f/f/s/fs232bl-swsamn-01.jpg" 
+                    alt="product" 
+                    className="w-15 h-15 " 
+                  />
+                <div className="flex flex-col">
+                  <p className="text-xs font-semibold">
+                    Product Name
+                  </p>
+                <a 
+                  onClick={() => setSelectedOrder(order)}
+                  className="text-blue-600 text-xs hover:text-blue-800 hover:underline cursor-pointer"
+                >
+                  {order.id}
+                </a>
+                </div>
+                </div>
+              </td>
               <td className="p-2">{order.date}</td>
               <td className="p-2">{order.amount}</td>
               <td className="p-2">
@@ -41,12 +60,20 @@ export default function OrderTable({ orders }) {
                 </span>
               </td>
               <td className="p-2">
-                <button
-                  onClick={() => setSelectedOrder(order)}
-                  className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
-                >
-                  View Details
-                </button>
+                <div className="flex gap-2">
+                  <a
+                    onClick={() => {/* Handle accept */}}
+                    className="px-3 py-1 text-xs text-white bg-primary rounded focus:outline-none"
+                  >
+                    Accept
+                  </a>
+                  <a  
+                    onClick={() => {/* Handle reject */}}
+                    className="px-3 py-1 text-xs text-primary border border-primary rounded focus:outline-none"
+                  >
+                    Reject
+                  </a>
+                </div>
               </td>
             </tr>
           )) : (
@@ -65,7 +92,7 @@ export default function OrderTable({ orders }) {
 
       {/* Right-side Drawer */}
       {selectedOrder && (
-        <div className="fixed inset-0  bg-opacity-50 z-50">
+        <div className="fixed inset-0 bg-opacity-50 z-50">
           <div className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-xl">
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b">
@@ -96,7 +123,7 @@ export default function OrderTable({ orders }) {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold mb-3">Ordered Products</h3>
                 {selectedOrder.orderItems.map((item, index) => (
-                  <div key={index} className="border-grey-200 border  rounded-lg p-3 mb-3 bg-white">
+                  <div key={index} className="border-grey-200 border rounded-lg p-3 mb-3 bg-white">
                     <div className="flex gap-3">
                       <img 
                         src={item.image}
