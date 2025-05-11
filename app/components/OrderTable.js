@@ -1,72 +1,9 @@
 import { useState } from "react";
+import PropTypes from 'prop-types';
 import { Icon } from '@iconify/react';
 
-export default function OrderTable() {
+export default function OrderTable({ orders }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
-
-  const orders = [
-    {
-      id: 'ITL00010',
-      date: '2/3/2023',
-      amount: '₹4,498',
-      payment: 'PREPAID',
-      orderItems: [
-        {
-          id: 'MS-2024-001',
-          name: 'Wireless Gaming Mouse',
-          price: '₹1,499',
-          quantity: 1,
-          image: 'https://oxygendigitalshop.com/media//catalog/product/-/o/-original-imah94g8gvtvuvvp_1.jpeg'
-        },
-        {
-          id: 'SH-2024-002',
-          name: 'Running Shoes',
-          price: '₹2,999',
-          quantity: 1,
-          image: 'https://fuelshoes.com/cdn/shop/files/8_1e1df76b-b544-44fc-8c2f-e31dba4b1eb3.jpg?v=1720001401&width=3000'
-        }
-      ],
-      items: 2,
-      customer: {
-        name: 'Kishor Ravat',
-        phone: '+91 98765 43210',
-        address: '123 Main Street, Apartment 4B, Mumbai, Maharashtra 400001'
-      },
-      weight: 'SS',
-      fulfilment: 'UNFULFILLED',
-      subtotal: '₹4,498',
-      shipping: '₹99',
-      tax: '₹449',
-      total: '₹5,046'
-    },
-    {
-      id: 'ITL00011',
-      date: '2/3/2023',
-      amount: '₹1,499',
-      payment: 'PREPAID',
-      orderItems: [
-        {
-          id: 'MS-2024-001',
-          name: 'Wireless Gaming Mouse',
-          price: '₹1,499',
-          quantity: 1,
-          image: 'https://oxygendigitalshop.com/media//catalog/product/-/o/-original-imah94g8gvtvuvvp_1.jpeg'
-        }
-      ],
-      items: 1,
-      customer: {
-        name: 'Praveen Kumar',
-        phone: '+91 98765 43210',
-        address: '456 Park Avenue, Building C, Delhi, 110001'
-      },
-      weight: '0.6 KG',
-      fulfilment: 'UNFULFILLED',
-      subtotal: '₹1,499',
-      shipping: '₹99',
-      tax: '₹149',
-      total: '₹1,747'
-    },
-  ];
 
   return (
     <div className="relative overflow-x-auto">
@@ -85,7 +22,7 @@ export default function OrderTable() {
           </tr>
         </thead>
         <tbody>
-          {orders.map((order, index) => (
+          {orders && orders.length > 0 ? orders.map((order, index) => (
             <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
               <td className="p-2 text-blue-600">{order.id}</td>
               <td className="p-2">{order.date}</td>
@@ -112,7 +49,17 @@ export default function OrderTable() {
                 </button>
               </td>
             </tr>
-          ))}
+          )) : (
+            <tr>
+              <td colSpan="9" className="text-center py-8">
+                <div className='text-center'>
+                  <Icon icon="nonicons:not-found-16" className='text-slate-400 text-center inline' width="48" height="48" />
+                </div>
+                <h2 className="text-base font-medium text-gray-700 mb-1">No orders yet</h2>
+                <p className="text-sm text-gray-500">But keep checking this section from time to time.</p>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -222,3 +169,7 @@ export default function OrderTable() {
     </div>
   );
 }
+
+OrderTable.propTypes = {
+  orders: PropTypes.array.isRequired,
+};

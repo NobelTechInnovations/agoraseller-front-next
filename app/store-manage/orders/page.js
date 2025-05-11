@@ -9,26 +9,78 @@ import { getSession } from 'next-auth/react';
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('pending');
+  const [ordersData, setOrdersData] = useState({ pending: [], processing: [], shipped: [], cancelled: [], delivered: [] });
+  const [loading, setLoading] = useState(true);
 
-  const [order, setOrder] = useState([]);
- 
-  
-  useEffect(
-    () => {
-      const fetchOrder = async () => {
-        const session = await getSession();
-      
-        const order = await axiosInstance.get('/order/list', {
+  useEffect(() => {
+    const fetchOrder = async () => {
+      const session = await getSession();
+      try {
+        const response = await axiosInstance.get('/order/list', {
           headers: {
             Authorization: `Bearer ${session.accessToken}`,
           },
-        });        
-        setOrder(order);
-        console.log(order);
+        });
+        // Assume response.data.data is the object with keys: pending, processing, shipped, etc.
+        setOrdersData({
+          pending: response.data.data.pending || [],
+          processing: response.data.data.processing || [],
+          shipped: response.data.data.shipped || [],
+          cancelled: response.data.data.cancelled || [],
+          delivered: response.data.data.delivered || [],
+        });
+      } catch (err) {
+        setOrdersData({ pending: [], processing: [], shipped: [], cancelled: [], delivered: [] });
       }
-      fetchOrder();
-    }, []
-  )
+      setLoading(false);
+    };
+    fetchOrder();
+  }, []);
+
+  // Transform API order to OrderTable format
+  const transformOrder = (order, status) => {
+    return {
+      id: order.order_number,
+      date: new Date(order.createdAt).toLocaleDateString(),
+      amount: `₹${order.final_amount}`,
+      payment: 'PREPAID', // You may want to update this if you have payment info
+      orderItems: [
+        {
+          id: order.orderProduct?.product_instance?.sku || '',
+          name: order.orderProduct?.product_instance?.name || '',
+          price: `₹${order.orderProduct?.product_instance?.order_price || 0}`,
+          quantity: order.orderProduct?.product_instance?.qty || 0,
+          image: order.orderProduct?.product_instance?.image || '',
+        },
+      ],
+      items: order.total_item,
+      customer: {
+        name: order.customer_email,
+        phone: '', // Add phone if available
+        address: '', // Add address if available
+      },
+      weight: '', // Add weight if available
+      fulfilment: status === 'processing' ? 'UNFULFILLED' : status.toUpperCase(),
+      subtotal: `₹${order.sub_total_amount}`,
+      shipping: `₹${order.shipping}`,
+      tax: `₹${order.tax}`,
+      total: `₹${order.final_amount}`,
+    };
+  };
+
+  let ordersToShow = [];
+  if (activeTab === 'pending') {
+    ordersToShow = (ordersData.pending || []).map(order => transformOrder(order, 'pending'));
+  } else if (activeTab === 'ready-to-ship') {
+    ordersToShow = (ordersData.processing || []).map(order => transformOrder(order, 'processing'));
+  } else if (activeTab === 'shipped') {
+    ordersToShow = (ordersData.shipped || []).map(order => transformOrder(order, 'shipped'));
+  } else if (activeTab === 'cancelled') {
+    ordersToShow = (ordersData.cancelled || []).map(order => transformOrder(order, 'cancelled'));
+  } else if (activeTab === 'Deliverd') {
+    ordersToShow = (ordersData.delivered || []).map(order => transformOrder(order, 'delivered'));
+  }
+
   return (
     <div className="p-3 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4 border border-gray-300 bg-white shadow rounded-lg px-3 py-2">
@@ -38,18 +90,17 @@ export default function OrdersPage() {
             <h1 className="text-lg font-semibold">Orders</h1>
           </div>
           <div className="flex text-lg font-semibold -mb-px">
-
             <button
               className={`${activeTab === 'pending' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
               onClick={() => setActiveTab('pending')}
             >
-              Pending (0)
+              Pending ({ordersData.pending.length})
             </button>
             <button
               className={`${activeTab === 'ready-to-ship' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
               onClick={() => setActiveTab('ready-to-ship')}
             >
-              Ready to Ship (1)
+              Ready to Ship ({ordersData.processing.length})
             </button>
             <button
               className={`${activeTab === 'shipped' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
@@ -72,7 +123,6 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-
           <button className="bg-blue-600 hover:bg-blue-700 cursor-pointer text-white px-3 py-1.5 rounded text-sm font-semibold flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -147,7 +197,11 @@ export default function OrdersPage() {
 
       {/* Empty state */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-2">
-        <OrderTable />
+        {loading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : (
+          <OrderTable orders={ordersToShow} />
+        )}
         <div className="text-center py-8 ">
           <div className='text-center'>
             <Icon icon="nonicons:not-found-16" className='text-slate-400 text-center inline' width="48" height="48" />
