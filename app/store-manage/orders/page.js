@@ -202,13 +202,13 @@ export default function OrdersPage() {
         ) : (
           <OrderTable orders={ordersToShow} />
         )}
-        <div className="text-center py-8 ">
+        {/* <div className="text-center py-8 ">
           <div className='text-center'>
             <Icon icon="nonicons:not-found-16" className='text-slate-400 text-center inline' width="48" height="48" />
           </div>
           <h2 className="text-base font-medium text-gray-700 mb-1">No orders yet</h2>
           <p className="text-sm text-gray-500">But keep checking this section from time to time.</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
