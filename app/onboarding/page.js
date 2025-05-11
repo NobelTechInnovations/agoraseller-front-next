@@ -34,6 +34,7 @@ function OnboardingContent() {
   useEffect(() => {
     const fetchUser = async () => {
       const session = await getSession();
+      if (!session.user.isNewUser) router.push('/store-manage');
       setPhone(session?.user?.phone)
     };
     fetchUser();
@@ -109,6 +110,8 @@ function OnboardingContent() {
       setIsLoading(false);
     }
   };
+
+
 
   return (
     <div className="min-h-screen flex bg-white">

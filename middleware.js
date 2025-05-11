@@ -29,8 +29,7 @@ export async function middleware(req) {
       secret: process.env.NEXTAUTH_SECRET,
       secureCookie: process.env.NODE_ENV === 'production',
     });
-
-    console.log(token,'middleare');
+    
 
     // If no token, and trying to access admin route, don't redirect to it
     if (!token) {
