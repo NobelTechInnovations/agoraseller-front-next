@@ -6,6 +6,7 @@ import { useState } from "react";
 import { sendOTP, verifyOTP } from "../../services/api";
 import { useRouter } from "next/navigation";
 import CryptoJS from "crypto-js";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
   const router = useRouter();

@@ -5,6 +5,8 @@ if (process.env.NODE_ENV === 'development') {
   BASE_URL = 'http://localhost:5000/v1/seller';
 }
 
+import axios from "axios";
+
 /**
  * Send OTP to the provided phone number
  * @param {string} phone - Phone number (10-15 digits)
@@ -13,15 +15,11 @@ if (process.env.NODE_ENV === 'development') {
 export const sendOTP = async (phone) => {
   try { 
 
-    const response = await fetch(`${BASE_URL}/user/request-otp`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ phone }),
+    const response = await  axios.post(`${BASE_URL}/user/request-otp`, {
+      phone,
     });
     
-    return await response.json();
+    return await response.data;
   } catch (error) {
     console.error("Error sending OTP:", error);
     throw error;
@@ -36,15 +34,12 @@ export const sendOTP = async (phone) => {
  */
 export const verifyOTP = async (phone, otp) => {
   try {
-    const response = await fetch(`${BASE_URL}/user/verify-otp`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ phone, otp }),
+    const response = await axios.post(`${BASE_URL}/user/verify-otp`, {
+      phone,
+      otp,
     });
     
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error("Error verifying OTP:", error);
     throw error;

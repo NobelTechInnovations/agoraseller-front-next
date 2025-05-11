@@ -6,8 +6,6 @@ const PUBLIC_PATHS = [
   '/api/auth',
   '/admin/login',
   '/seller/login',
-  '/store-manage',
-  '/store-manage/:path*',
 ];
 
 const ADMIN_ONLY_PATHS = ['/admin/dashboard', '/admin/dashboard/'];
@@ -68,6 +66,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/store-manage/:path*',
+    '/onboarding',
     '/onboarding/:path*',
     '/seller/:path*',
   ],

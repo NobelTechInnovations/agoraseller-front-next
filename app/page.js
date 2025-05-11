@@ -62,12 +62,17 @@ export default function Home() {
 
     try {
       const data = await verifyOTP(phoneNumber, otp);
+
       const secretKey = "24_agora_secret";
       const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
-      if (data.status) {
-        sessionStorage.setItem('verified_phone', phoneNumber);
-        router.push(`/onboarding`);
+      if (data.success) {
+        if(data.data.isNewUser){
+          sessionStorage.setItem('verified_phone', phoneNumber);
+          router.push(`/onboarding`);
+        }else{
+          router.push(`/store-manage`);
+        }
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
       }

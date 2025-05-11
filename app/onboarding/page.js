@@ -40,32 +40,6 @@ function OnboardingContent() {
     }
   }, [phone]);
 
-  // Check if user already has a token and redirect if necessary
-  useEffect(() => {
-    const sellerAuth = localStorage.getItem('sellerAuth');
-    if (sellerAuth) {
-      const authData = JSON.parse(sellerAuth);
-      const isValid = authData.expiry > new Date().getTime();
-      
-      if (isValid) {
-        // Redirect to the business-details page if the token is valid
-        router.replace("/onboarding/business-details");
-      }
-    }
-
-    // Prevent going back by manipulating browser history
-    window.history.pushState(null, '', window.location.href);
-    const preventGoingBack = () => {
-      window.history.pushState(null, '', window.location.href);
-    };
-    
-    window.addEventListener('popstate', preventGoingBack);
-    
-    return () => {
-      window.removeEventListener('popstate', preventGoingBack);
-    };
-  }, [router]);
-
   const handleOptionChange = (option) => {
     setSelectedOption(option);
   };
