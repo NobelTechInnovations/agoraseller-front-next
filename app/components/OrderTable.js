@@ -1,12 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from 'prop-types';
 import { Icon } from '@iconify/react';
+import axiosInstance from "../utils/axios";
 
-export default function OrderTable({ orders }) {
+export default function OrderTable({ orders, refreshOrders }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loading, setLoading] = useState({});
+  const [flashMessage, setFlashMessage] = useState(null);
+
+  // Clear flash message after 5 seconds
+  useEffect(() => {
+    if (flashMessage) {
+      const timer = setTimeout(() => {
+        setFlashMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [flashMessage]);
+
+  const processOrder = async (orderId, action) => {
+    try {
+      setLoading(prev => ({ ...prev, [orderId]: true }));
+      
+      const response = await axiosInstance.post(`/order/${orderId}/process`, {
+        order_process: action
+      });
+
+      if (response.data.success) {
+        setFlashMessage({
+          type: 'success',
+          text: `Order ${action === 'accept' ? 'accepted' : 'rejected'} successfully`
+        });
+        
+        // If order was in drawer, close it
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder(null);
+        }
+        
+        // Refresh orders list after successful action
+        if (refreshOrders) {
+          refreshOrders();
+        }
+      } else {
+        setFlashMessage({
+          type: 'error',
+          text: `Failed to ${action} order`
+        });
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing order:`, error);
+      setFlashMessage({
+        type: 'error',
+        text: `Error ${action}ing order: ${error.response?.data?.message || error.message}`
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  // Debug orders data structure
+  console.log("Orders received in OrderTable:", orders);
 
   return (
-    <div className="relative overflow-x-auto">
+    <div className="relative">
       <table className="min-w-full text-sm text-left text-gray-600 bg-white border border-gray-200 shadow rounded-lg">
         <thead className="bg-gray-100 text-xs uppercase text-gray-700">
           <tr>
@@ -33,7 +89,7 @@ export default function OrderTable({ orders }) {
                   />
                 <div className="flex flex-col">
                   <p className="text-xs font-semibold">
-                    Product Name
+                    {order.orderItems?.[0]?.name || "Product Name"}
                   </p>
                 <a 
                   onClick={() => setSelectedOrder(order)}
@@ -47,7 +103,7 @@ export default function OrderTable({ orders }) {
               <td className="p-2">{order.date}</td>
               <td className="p-2">{order.amount}</td>
               <td className="p-2">
-                <span className={`px-2 py-1 rounded text-white text-xs ${order.payment === 'PREPAID' ? 'bg-blue-500' : 'bg-yellow-500'}`}>
+                <span className={`px-2 py-1 rounded text-primary text-xs ${order.payment === 'PREPAID' ? 'border border-blue-500' : 'border border-yellow-500'}`}>
                   {order.payment}
                 </span>
               </td>
@@ -55,24 +111,42 @@ export default function OrderTable({ orders }) {
               <td className="p-2">{order.customer.name}</td>
               <td className="p-2">{order.weight}</td>
               <td className="p-2">
-                <span className={`px-2 py-1 rounded text-xs ${order.fulfilment === 'FULFILLED' ? 'bg-green-200 text-green-700' : 'bg-yellow-200 text-yellow-700'}`}>
+                <span className={`px-2 py-1 border border rounded text-xs ${order.fulfilment === 'FULFILLED' ? 'bg-green-200 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                   {order.fulfilment}
                 </span>
               </td>
               <td className="p-2">
                 <div className="flex gap-2">
-                  <a
-                    onClick={() => {/* Handle accept */}}
-                    className="px-3 py-1 text-xs text-white bg-primary rounded focus:outline-none"
-                  >
-                    Accept
-                  </a>
-                  <a  
-                    onClick={() => {/* Handle reject */}}
-                    className="px-3 py-1 text-xs text-primary border border-primary rounded focus:outline-none"
-                  >
-                    Reject
-                  </a>
+                  {order.status === 'pending' ? (
+                    <>
+                      <a
+                        onClick={() => processOrder(order._id, 'accept')}
+                        disabled={loading[order._id]}
+                        className="px-3 py-1 text-xs hover:cursor-pointer text-white bg-primary rounded focus:outline-none disabled:opacity-50"
+                      >
+                        {loading[order._id] ? 'Processing...' : 'Accept'}
+                      </a>
+                      <a  
+                        onClick={() => processOrder(order._id, 'reject')}
+                        disabled={loading[order._id]}
+                        className="px-3 py-1 text-xs hover:cursor-pointer text-primary border border-primary rounded focus:outline-none disabled:opacity-50"
+                      >
+                        {loading[order._id] ? 'Processing...' : 'Reject'}
+                      </a>
+                    </>
+                  ) : order.status === 'processing' ? (
+                    <a
+                      onClick={() => processOrder(order._id, 'ready_to_ship')}
+                      className="px-3 py-1 text-xs hover:cursor-pointer text-black bg-secondary rounded focus:outline-none"
+                    >
+                      Ready for Pickup
+                    </a>
+                  ) : order.status === 'ready_to_ship' ? (
+                    <span className="inline-flex items-center px-3 py-1 text-xs text-primary border border-primary  rounded">
+                      Waiting for driver
+                      <span className="animate-pulse ml-1">...</span> {/* Animated ellipsis */}
+                    </span>
+                  ) : null}
                 </div>
               </td>
             </tr>
@@ -89,6 +163,26 @@ export default function OrderTable({ orders }) {
           )}
         </tbody>
       </table>
+
+      {/* Flash Message */}
+      {flashMessage && (
+        <div 
+          className={`mt-4 p-3 rounded-md text-sm ${
+            flashMessage.type === 'success' 
+              ? 'bg-green-100 text-green-700 border border-green-200' 
+              : 'bg-red-100 text-red-700 border border-red-200'
+          }`}
+        >
+          <div className="flex items-center">
+            <Icon 
+              icon={flashMessage.type === 'success' ? 'mdi:check-circle' : 'mdi:alert-circle'} 
+              className="mr-2" 
+              width="18" 
+            />
+            {flashMessage.text}
+          </div>
+        </div>
+      )}
 
       {/* Right-side Drawer */}
       {selectedOrder && (
@@ -124,10 +218,10 @@ export default function OrderTable({ orders }) {
               <div className="px-6 py-4">
                 <h3 className="text-xs font-medium text-gray-500 mb-4">ORDER ITEMS</h3>
                 <div className="space-y-3">
-                  {selectedOrder.orderItems.map((item, index) => (
+                  {selectedOrder.orderItems && selectedOrder.orderItems.map((item, index) => (
                     <div key={index} className="flex gap-4 bg-white rounded p-3 shadow-sm">
                       <img 
-                        src="https://karamonline.com/media/catalog/product/cache/509850b11aa2210ac1d2c31fec93d22f/f/s/fs232bl-swsamn-01.jpg" 
+                        src={item.image || "https://karamonline.com/media/catalog/product/cache/509850b11aa2210ac1d2c31fec93d22f/f/s/fs232bl-swsamn-01.jpg"} 
                         alt="product" 
                         className="w-15 h-15 " 
                       />
@@ -156,6 +250,7 @@ export default function OrderTable({ orders }) {
                     <span className="text-gray-500">Delivery charge</span>
                     <span className="text-gray-800">{selectedOrder.shipping}</span>
                   </div>
+
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Taxes</span>
                     <span className="text-gray-800">{selectedOrder.tax}</span>
@@ -188,12 +283,30 @@ export default function OrderTable({ orders }) {
             {/* Action Buttons */}
             <div className="px-6 py-4 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.05)] sticky bottom-0">
               <div className="flex gap-3">
-                <button className="flex-1 bg-primary text-white py-2.5 px-4 rounded text-sm font-medium hover:bg-primary/90 transition-colors">
-                  Accept Order
-                </button>
-                <button className="flex-1 border border-gray-200 text-gray-600 py-2.5 px-4 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-                  Reject Order
-                </button>
+                {selectedOrder.status === 'pending' ? (
+                  <>
+                    <button 
+                      onClick={() => processOrder(selectedOrder._id, 'accept')}
+                      disabled={loading[selectedOrder._id]}
+                      className="flex-1 bg-primary text-white py-2.5 px-4 rounded text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {loading[selectedOrder._id] ? 'Processing...' : 'Accept Order'}
+                    </button>
+                    <button 
+                      onClick={() => processOrder(selectedOrder._id, 'reject')}
+                      disabled={loading[selectedOrder._id]}
+                      className="flex-1 border border-gray-200 text-gray-600 py-2.5 px-4 rounded text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      {loading[selectedOrder._id] ? 'Processing...' : 'Reject Order'}
+                    </button>
+                  </>
+                ) : selectedOrder.status === 'processing' ? (
+                  <button 
+                    className="flex-1 bg-green-600 text-white py-2.5 px-4 rounded text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Ready for Pickup
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -205,4 +318,6 @@ export default function OrderTable({ orders }) {
 
 OrderTable.propTypes = {
   orders: PropTypes.array.isRequired,
+  refreshOrders: PropTypes.func,
 };
+

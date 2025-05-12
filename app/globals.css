@@ -4,6 +4,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --primary: #0059cd;
+  --secondary: #fad406;
   --primary-light: #f5eeff;
   --primary-dark: #004aac;
 }
@@ -14,6 +15,7 @@
   --color-primary: var(--primary);
   --color-primary-light: var(--primary-light);
   --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -50,3 +52,23 @@ h3 {
 }
 
 /* Remove dark mode preferences */
+@keyframes dotTrail {
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+  100% {
+    content: '.';
+  }
+}
+
+.animate-dot-trail::after {
+  content: '.';
+  display: inline-block;
+  animation: dotTrail 1.5s infinite;
+}

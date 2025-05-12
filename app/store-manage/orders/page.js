@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Icon } from '@iconify/react';
 import OrderTable from '../../components/OrderTable';
 import axiosInstance from '../../utils/axios';
@@ -12,38 +12,47 @@ export default function OrdersPage() {
   const [ordersData, setOrdersData] = useState({ pending: [], processing: [], shipped: [], cancelled: [], delivered: [] });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      const session = await getSession();
-      try {
-        const response = await axiosInstance.get('/order/list', {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-        // Assume response.data.data is the object with keys: pending, processing, shipped, etc.
-        setOrdersData({
-          pending: response.data.data.pending || [],
-          processing: response.data.data.processing || [],
-          shipped: response.data.data.shipped || [],
-          cancelled: response.data.data.cancelled || [],
-          delivered: response.data.data.delivered || [],
-        });
-      } catch (err) {
-        setOrdersData({ pending: [], processing: [], shipped: [], cancelled: [], delivered: [] });
-      }
-      setLoading(false);
-    };
-    fetchOrder();
+  // Create a fetchOrders function that can be called to refresh data
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    const session = await getSession();
+    try {
+      const response = await axiosInstance.get('/order/list', {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+      // Assume response.data.data is the object with keys: pending, processing, shipped, etc.
+      setOrdersData({
+        pending: response.data.data.pending || [],
+        processing: response.data.data.processing || [],
+        shipped: response.data.data.shipped || [],
+        ready_to_ship: response.data.data.ready_to_ship || [],
+        cancelled: response.data.data.cancelled || [],
+        rejected: response.data.data.rejected || [],
+        delivered: response.data.data.delivered || [],
+      });
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrdersData({ pending: [], processing: [], shipped: [], ready_to_ship: [], cancelled: [], rejected: [], delivered: [] });
+    }
+    setLoading(false);
   }, []);
+
+  // Call fetchOrders on component mount
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Transform API order to OrderTable format
   const transformOrder = (order, status) => {
     return {
       id: order.order_number,
+      _id: order._id, // Add the _id field for API calls
       date: new Date(order.createdAt).toLocaleDateString(),
       amount: `₹${order.final_amount}`,
       payment: 'PREPAID', // You may want to update this if you have payment info
+      status: status, // Add the raw status for API calls
       orderItems: [
         {
           id: order.orderProduct?.product_instance?.sku || '',
@@ -60,7 +69,7 @@ export default function OrdersPage() {
         address: '', // Add address if available
       },
       weight: '', // Add weight if available
-      fulfilment: status === 'processing' ? 'UNFULFILLED' : status.toUpperCase(),
+      fulfilment: status.toUpperCase(), // Convert status to uppercase for display
       subtotal: `₹${order.sub_total_amount}`,
       shipping: `₹${order.shipping}`,
       tax: `₹${order.tax}`,
@@ -72,12 +81,21 @@ export default function OrdersPage() {
   if (activeTab === 'pending') {
     ordersToShow = (ordersData.pending || []).map(order => transformOrder(order, 'pending'));
   } else if (activeTab === 'ready-to-ship') {
-    ordersToShow = (ordersData.processing || []).map(order => transformOrder(order, 'processing'));
+    // ordersToShow = (ordersData.processing || []).map(order => transformOrder(order, 'processing'));
+    ordersToShow = [
+      ...(ordersData.processing || []).map(order => transformOrder(order, 'processing')),
+      ...(ordersData.ready_to_ship || []).map(order => transformOrder(order, 'ready_to_ship'))
+    ];
+
   } else if (activeTab === 'shipped') {
     ordersToShow = (ordersData.shipped || []).map(order => transformOrder(order, 'shipped'));
   } else if (activeTab === 'cancelled') {
-    ordersToShow = (ordersData.cancelled || []).map(order => transformOrder(order, 'cancelled'));
-  } else if (activeTab === 'Deliverd') {
+    // ordersToShow = (ordersData.cancelled || []).map(order => transformOrder(order, 'cancelled'));
+    ordersToShow = [
+      ...(ordersData.cancelled || []).map(order => transformOrder(order, 'cancelled')),
+      ...(ordersData.rejected || []).map(order => transformOrder(order, 'rejected'))
+    ];
+  } else if (activeTab === 'Delivered') {
     ordersToShow = (ordersData.delivered || []).map(order => transformOrder(order, 'delivered'));
   }
 
@@ -100,7 +118,7 @@ export default function OrdersPage() {
               className={`${activeTab === 'ready-to-ship' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
               onClick={() => setActiveTab('ready-to-ship')}
             >
-              Ready to Ship ({ordersData.processing.length})
+              Ready to Ship  ({(ordersData?.processing?.length || 0) + (ordersData?.ready_to_ship?.length || 0)})
             </button>
             <button
               className={`${activeTab === 'shipped' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
@@ -112,13 +130,13 @@ export default function OrdersPage() {
               className={`${activeTab === 'cancelled' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
               onClick={() => setActiveTab('cancelled')}
             >
-              Cancelled
+              Cancelled  ({(ordersData?.cancelled?.length || 0) + (ordersData?.rejected?.length || 0)})
             </button>
             <button
-              className={`${activeTab === 'Deliverd' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
-              onClick={() => setActiveTab('Deliverd')}
+              className={`${activeTab === 'Delivered' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
+              onClick={() => setActiveTab('Delivered')}
             >
-              Deliverd
+              Delivered
             </button>
           </div>
         </div>
@@ -200,7 +218,7 @@ export default function OrdersPage() {
         {loading ? (
           <div className="text-center py-8">Loading...</div>
         ) : (
-          <OrderTable orders={ordersToShow} />
+          <OrderTable orders={ordersToShow} refreshOrders={fetchOrders} />
         )}
         {/* <div className="text-center py-8 ">
           <div className='text-center'>
