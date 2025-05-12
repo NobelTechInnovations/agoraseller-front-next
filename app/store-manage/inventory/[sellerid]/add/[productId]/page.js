@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { use } from 'react';
+import axiosInstance from '../../../../../utils/axios';
+import { getSession } from 'next-auth/react';
 
 const ProductDetailsPage = ({ params }) => {
   const router = useRouter();
   const unwrappedParams = use(params);
   const { productId, sellerid } = unwrappedParams;
-  
+  // Add product state
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   // Form state
   const [color, setColor] = useState('');
   const [fabric, setFabric] = useState('');
@@ -159,6 +164,33 @@ const ProductDetailsPage = ({ params }) => {
     router.push(`/store-manage/inventory/${sellerid}/add/${productId}/shipping`);
   };
 
+  // Add useEffect to fetch product details
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      try {
+        const session = await getSession();
+        const response = await axiosInstance.get(`/product/${productId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          });
+
+        if (response.data.success) {
+          setProduct(response.data.data.product);
+          // Set initial form values from product data
+          setCategoryPath(response.data.data.product.category);
+        }
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [productId]);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Category Path Display */}
@@ -166,14 +198,7 @@ const ProductDetailsPage = ({ params }) => {
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span className="font-medium">Category:</span>
           <div className="flex items-center">
-            {productId.split('>').map((category, index, array) => (
-              <div key={index} className="flex items-center">
-                <span className={index === array.length - 1 ? "font-medium text-blue-600" : ""}>
-                  {category.trim()}
-                </span>
-                {index < array.length - 1 && <span className="mx-2">›</span>}
-              </div>
-            ))}
+            {product?.category}
           </div>
         </div>
       </div>
@@ -184,7 +209,9 @@ const ProductDetailsPage = ({ params }) => {
           <div className="bg-white p-6 rounded-lg border border-gray-300">
             {/* Welcome Section */}
             <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">Product Details</h3>
+              <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+                Product Details - {product?.title}
+              </h3>
 
               <div className="bg-gray-200 p-4 mb-4">
                 <p className="text-sm text-gray-600">
@@ -269,7 +296,7 @@ const ProductDetailsPage = ({ params }) => {
                             id="mrpPrice"
                             value={mrpPrice}
                             onChange={(e) => setMrpPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-1 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -290,7 +317,7 @@ const ProductDetailsPage = ({ params }) => {
                             id="sellingPrice"
                             value={sellingPrice}
                             onChange={(e) => setSellingPrice(e.target.value)}
-                            className={`mt-1 block w-full pl-14 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                            className={`mt-1 block w-full pl-1 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'}  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
                             placeholder="0.00"
                             min="0"
                             step="0.01"
@@ -587,11 +614,32 @@ const ProductDetailsPage = ({ params }) => {
         <div className="flex flex-col gap-6 w-1/4">
           <div className="bg-white p-6 rounded-lg border border-gray-300">
             <h4 className="text-lg font-medium text-gray-800 mb-4">Product Images</h4>
-            <div className="flex flex-wrap gap-4">
-              {/* Main product image placeholder */}
-              <div className="w-32 p-2 h-32 bg-gray-100 flex items-center justify-center border-gray-300 border border-gray-200 text-gray-400">
-                No images uploaded
-              </div>
+            <div className="flex flex-col gap-4">
+              {/* Main product image */}
+              {product?.thumbnail_image && (
+                <div className="relative w-full aspect-square">
+                  <img
+                    src={product.thumbnail_image}
+                    alt="Product thumbnail"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+              )}
+              
+              {/* Gallery images */}
+              {product?.gallery_images && product.gallery_images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {product.gallery_images.map((image, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <img
+                        src={image}
+                        alt={`Gallery image ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               
               {/* Variation thumbnails */}
               {Object.entries(variationImages).map(([variationId, imageUrl]) => (

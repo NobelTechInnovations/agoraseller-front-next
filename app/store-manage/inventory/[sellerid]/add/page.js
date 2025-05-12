@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import axiosInstance from '../../../../utils/axios';
 
 const AddProduct = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,8 +14,13 @@ const AddProduct = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
   const router = useRouter();
+  const params = useParams();
+  const sellerId = params.sellerid;
   const [currentCategories, setCurrentCategories] = useState([
     { name: 'Body care & Health', hasChildren: true },
     { name: 'Food', hasChildren: true },
@@ -25,6 +32,14 @@ const AddProduct = () => {
 
   const MAX_IMAGES = 7;
 
+  // Initialize S3 client
+  const s3Client = new S3Client({
+    region: process.env.NEXT_PUBLIC_AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY,
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_KEY,
+    },
+  });
   // Sample child categories - in a real app, these would come from an API
   const childCategories = {
     'Body care & Health': [
@@ -47,7 +62,40 @@ const AddProduct = () => {
       { name: 'Foundation', hasChildren: false },
       { name: 'Eyeshadow', hasChildren: false },
     ],
-    // Add more child categories as needed
+  };
+
+  const uploadToS3 = async (file) => {
+    try {
+      // Generate a clean file name
+      const timestamp = Date.now();
+      const originalName = file.name.replace(/[^a-zA-Z0-9.]/g, '-'); // Replace special chars with hyphens
+      const fileName = `${timestamp}-${originalName}`;
+      const key = `products/${fileName}`;
+
+      // Convert File to Buffer
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Upload to S3
+      const command = new PutObjectCommand({
+        Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      });
+
+      await s3Client.send(command);
+
+      // Return the S3 URL with proper encoding
+      const encodedKey = encodeURIComponent(key);
+      return {
+        url: `https://${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME}.s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com/${encodedKey}`,
+        key: key
+      };
+    } catch (error) {
+      console.error('Error uploading to S3:', error);
+      throw error;
+    }
   };
 
   const handleNextClick = (category) => {
@@ -77,13 +125,12 @@ const AddProduct = () => {
           { name: 'Sex toy', hasChildren: true },
         ]);
       } else {
-        // In a real app, you would fetch the parent's children from an API
         setCurrentCategories(childCategories[newPath[newPath.length - 1]] || []);
       }
     }
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -103,17 +150,37 @@ const AddProduct = () => {
         setUploadError(`Only the first ${remainingSlots} image${remainingSlots !== 1 ? 's' : ''} ${remainingSlots !== 1 ? 'were' : 'was'} added. ${rejectedCount} image${rejectedCount !== 1 ? 's' : ''} ${rejectedCount !== 1 ? 'were' : 'was'} rejected due to the ${MAX_IMAGES} image limit.`);
       }
       
-      // Create local URLs for preview only for the files we're keeping
-      const localImages = filesToUpload.map(file => ({
-        url: URL.createObjectURL(file),
-        name: file.name,
-        file: file // Store the file object for later upload
-      }));
-      
-      setUploadedImages(prev => [...prev, ...localImages]);
+      // Upload each file to S3 and create preview
+      const uploadPromises = filesToUpload.map(async (file) => {
+        try {
+          // Validate file type
+          if (!file.type.startsWith('image/')) {
+            throw new Error(`${file.name} is not a valid image file`);
+          }
+
+          // Validate file size (10MB limit)
+          if (file.size > 10 * 1024 * 1024) {
+            throw new Error(`${file.name} is too large. Maximum size is 10MB`);
+          }
+
+          const s3Result = await uploadToS3(file);
+          return {
+            url: URL.createObjectURL(file), // Local preview
+            name: file.name,
+            s3Url: s3Result.url,
+            s3Key: s3Result.key
+          };
+        } catch (error) {
+          console.error('Error uploading file to S3:', error);
+          throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+        }
+      });
+
+      const uploadedResults = await Promise.all(uploadPromises);
+      setUploadedImages(prev => [...prev, ...uploadedResults]);
     } catch (error) {
       console.error('Error handling files:', error);
-      setUploadError('Failed to process selected images');
+      setUploadError(error.message || 'Failed to process selected images');
     } finally {
       setIsUploading(false);
     }
@@ -124,7 +191,7 @@ const AddProduct = () => {
     event.stopPropagation();
   };
 
-  const handleDrop = (event) => {
+  const handleDrop = async (event) => {
     event.preventDefault();
     event.stopPropagation();
     
@@ -155,7 +222,7 @@ const AddProduct = () => {
       }
       
       // Process the remaining files
-      handleFileUpload({ target: { files: dataTransfer.files } });
+      await handleFileUpload({ target: { files: dataTransfer.files } });
     }
   };
   
@@ -172,15 +239,51 @@ const AddProduct = () => {
     setUploadError(null);
   };
 
-  const handleSaveAndNext = () => {
+  const handleSaveAndNext = async () => {
     if (!selectedCategory) {
-      alert('Please select a category first');
+      setUploadError('Please select a category');
       return;
     }
-    
-    // Here you would typically save the form data
-    // For now, we'll just navigate to the next page
-    router.push(`/store-manage/inventory/dfs468g/add/test123`);
+
+    if (!title.trim()) {
+      setUploadError('Please enter a product title');
+      return;
+    }
+
+    if (uploadedImages.length === 0) {
+      setUploadError('Please upload at least one image');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setUploadError(null);
+
+    try {
+      const payload = {
+        product: {
+          category_id: selectedCategory._id
+        },
+        images: uploadedImages.map(img => img.s3Url),
+        title: {
+          title: title.trim(),
+          description: description.trim()
+        }
+      };
+
+      const response = await axiosInstance.post('/product', payload);
+      
+      if (response.data.success) {
+        // Navigate to next screen with seller ID and product ID
+        router.push(`/store-manage/inventory/${sellerId}/add/${response.data.data.product.product_id}`);
+      } else {
+        throw new Error(response.data.message || 'Failed to create product');
+      }
+    } catch (error) {
+      console.error('Error creating product:', error);
+      setUploadError(error.response?.data?.message || error.message || 'Failed to create product');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -214,7 +317,9 @@ const AddProduct = () => {
                     <textarea
                       id="title"
                       rows={2}
-                      className="mt-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="mt-1 p-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
 
@@ -233,14 +338,15 @@ const AddProduct = () => {
                     <textarea
                       id="description"
                       rows={5}
-                      className="mt-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="mt-1 p-1 block w-full border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     />
                   </div>
 
                   {/* Category Selection */}
                   <div className="col-span-2">
                     <div className="mb-6">
-                      
                       <div className="mb-4">
                         {/* Category Path */}
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
@@ -302,21 +408,6 @@ const AddProduct = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-6 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleSaveAndNext}
-                    className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md ${
-                      selectedCategory 
-                        ? 'text-blue-700 border-blue-700 hover:bg-blue-100' 
-                        : 'text-gray-400 border-gray-300 cursor-not-allowed'
-                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                    disabled={!selectedCategory}
-                  >
-                    Save and Next
-                  </button>
                 </div>
               </form>
             </div>
@@ -442,14 +533,37 @@ const AddProduct = () => {
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Images will be uploaded when you submit the form
-                  </p>
                 </div>
               )}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Add Save and Next button at the bottom */}
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSaveAndNext}
+          disabled={isSubmitting}
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
+            ${isSubmitting 
+              ? 'bg-indigo-400 cursor-not-allowed' 
+              : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+            }`}
+        >
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating Product...
+            </>
+          ) : (
+            'Save and Next'
+          )}
+        </button>
       </div>
     </div>
   );
