@@ -7,6 +7,26 @@ import Link from 'next/link';
 import { use } from 'react';
 import axiosInstance from '../../../../../utils/axios';
 import { getSession } from 'next-auth/react';
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+// Image Skeleton Component
+const ImageSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="bg-gray-200 rounded-lg w-full aspect-square"></div>
+  </div>
+);
+
+// Gallery Skeleton Component
+const GallerySkeleton = () => (
+  <div className="grid grid-cols-2 gap-2">
+    {[1, 2, 3, 4].map((index) => (
+      <div key={index} className="animate-pulse">
+        <div className="bg-gray-200 rounded-lg w-full aspect-square"></div>
+      </div>
+    ))}
+  </div>
+);
 
 const ProductDetailsPage = ({ params }) => {
   const router = useRouter();
@@ -15,6 +35,14 @@ const ProductDetailsPage = ({ params }) => {
   // Add product state
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imageUrls, setImageUrls] = useState({
+    thumbnail: '',
+    gallery: []
+  });
+  const [imageLoading, setImageLoading] = useState({
+    thumbnail: true,
+    gallery: true
+  });
 
   // Form state
   const [color, setColor] = useState('');
@@ -58,6 +86,47 @@ const ProductDetailsPage = ({ params }) => {
     { id: 'length', label: 'Length' },
     { id: 'sleeve', label: 'Sleeve' }
   ];
+
+  // Initialize S3 client
+  const s3Client = new S3Client({
+    region: process.env.NEXT_PUBLIC_AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY,
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_KEY,
+    },
+  });
+
+  // Function to get pre-signed URL
+  const getPresignedUrl = async (key) => {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME,
+        Key: key,
+      });
+      return await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
+    } catch (error) {
+      console.error('Error generating pre-signed URL:', error);
+      return null;
+    }
+  };
+
+  // Function to extract key from S3 URL
+  const getKeyFromUrl = (url) => {
+    try {
+      const urlObj = new URL(url);
+      return decodeURIComponent(urlObj.pathname.substring(1)); // Remove leading slash and decode
+    } catch (error) {
+      console.error('Error parsing S3 URL:', error);
+      return null;
+    }
+  };
+
+  // Function to convert S3 URL to our API URL
+  const getApiImageUrl = (s3Url) => {
+    const key = getKeyFromUrl(s3Url);
+    if (!key) return null;
+    return `/api/images/${key}`;
+  };
 
   const handleAttributeChange = (attributeId) => {
     setSelectedAttributes(prev => {
@@ -164,7 +233,7 @@ const ProductDetailsPage = ({ params }) => {
     router.push(`/store-manage/inventory/${sellerid}/add/${productId}/shipping`);
   };
 
-  // Add useEffect to fetch product details
+  // Add useEffect to fetch product details and generate pre-signed URLs
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
@@ -177,9 +246,24 @@ const ProductDetailsPage = ({ params }) => {
           });
 
         if (response.data.success) {
-          setProduct(response.data.data.product);
-          // Set initial form values from product data
-          setCategoryPath(response.data.data.product.category);
+          const productData = response.data.data.product;
+          setProduct(productData);
+          setCategoryPath(productData.category);
+
+          // Convert S3 URLs to our API URLs
+          if (productData.thumbnail_image) {
+            const thumbnailUrl = getApiImageUrl(productData.thumbnail_image);
+            if (thumbnailUrl) {
+              setImageUrls(prev => ({ ...prev, thumbnail: thumbnailUrl }));
+            }
+          }
+
+          if (productData.gallery_images && productData.gallery_images.length > 0) {
+            const galleryUrls = productData.gallery_images
+              .map(getApiImageUrl)
+              .filter(url => url);
+            setImageUrls(prev => ({ ...prev, gallery: galleryUrls }));
+          }
         }
       } catch (error) {
         console.error('Error fetching product details:', error);
@@ -616,25 +700,51 @@ const ProductDetailsPage = ({ params }) => {
             <h4 className="text-lg font-medium text-gray-800 mb-4">Product Images</h4>
             <div className="flex flex-col gap-4">
               {/* Main product image */}
-              {product?.thumbnail_image && (
+              {!imageUrls.thumbnail ? (
+                <ImageSkeleton />
+              ) : (
                 <div className="relative w-full aspect-square">
-                  <img
-                    src={product.thumbnail_image}
+                  <Image
+                    src={imageUrls.thumbnail}
                     alt="Product thumbnail"
-                    className="w-full h-full object-cover rounded-lg"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover rounded-lg"
+                    unoptimized
+                    onLoad={() => setImageLoading(prev => ({ ...prev, thumbnail: false }))}
+                    onError={() => {
+                      console.error('Error loading thumbnail image');
+                      setImageLoading(prev => ({ ...prev, thumbnail: false }));
+                    }}
                   />
                 </div>
               )}
               
               {/* Gallery images */}
-              {product?.gallery_images && product.gallery_images.length > 0 && (
+              {!imageUrls.gallery.length ? (
+                <GallerySkeleton />
+              ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {product.gallery_images.map((image, index) => (
+                  {imageUrls.gallery.map((imageUrl, index) => (
                     <div key={index} className="relative aspect-square">
-                      <img
-                        src={image}
+                      <Image
+                        src={imageUrl}
                         alt={`Gallery image ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg"
+                        fill
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
+                        className="object-cover rounded-lg"
+                        unoptimized
+                        onLoad={() => {
+                          if (index === imageUrls.gallery.length - 1) {
+                            setImageLoading(prev => ({ ...prev, gallery: false }));
+                          }
+                        }}
+                        onError={() => {
+                          console.error(`Error loading gallery image ${index + 1}`);
+                          if (index === imageUrls.gallery.length - 1) {
+                            setImageLoading(prev => ({ ...prev, gallery: false }));
+                          }
+                        }}
                       />
                     </div>
                   ))}
@@ -643,11 +753,14 @@ const ProductDetailsPage = ({ params }) => {
               
               {/* Variation thumbnails */}
               {Object.entries(variationImages).map(([variationId, imageUrl]) => (
-                <div key={variationId} className="relative">
-                  <img
+                <div key={variationId} className="relative aspect-square">
+                  <Image
                     src={imageUrl}
                     alt="Variation"
-                    className="w-32 h-32 object-cover border-gray-900"
+                    fill
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
+                    className="object-cover rounded-lg"
+                    unoptimized
                   />
                   <button
                     onClick={() => {
