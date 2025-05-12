@@ -4,15 +4,15 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Sidebar from './sidebar';
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-
   const handleLogout = () => {
     // Remove auth token from localStorage
     localStorage.removeItem('sellerAuth');
@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }) {
       name: 'Listing', href: '/store-manage/inventory/listing',
       items: [
         { name: 'Product Listing', href: '/store-manage/inventory/listing' },
-        { name: 'Add Product', href: `/store-manage/inventory/${sellerId}/add` },
+        { name: 'Add Product', href: `/store-manage/inventory/${btoa(session?.user?.id)}/add` },
         { name: 'Warehouse', href: '/store-manage/warehouse' },
         { name: 'Inventory Excel', href: '/store-manage/inventory-excel' },
         { name: 'View All', href: '/store-manage/listings' }
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children }) {
               <nav className="flex items-center gap-1 flex-1 ml-5">
 
                 <Link
-                  href={`/store-manage/inventory/dfs468g/add`}
+                  href={`/store-manage/inventory/${btoa(session?.user?.id)}/add`}
                   className="px-4 py-1 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
 
@@ -135,7 +135,7 @@ export default function DashboardLayout({ children }) {
 
                     {/* Dropdown menu */}
                     {item.items && activeDropdown === index && (
-                      <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="absolute left-0  w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
                         {item.items.map((subItem, subIndex) => (
                           <Link
                             key={subIndex}
