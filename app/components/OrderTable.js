@@ -92,100 +92,106 @@ export default function OrderTable({ orders }) {
 
       {/* Right-side Drawer */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-opacity-50 z-50">
-          <div className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-xl">
+        <div className="fixed inset-0 bg-gray-500/30 z-50">
+          <div className="fixed inset-y-0 right-0 w-[400px] bg-gray-50 shadow-lg flex flex-col">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-lg font-semibold">Order Details</h2>
-              <button onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-gray-700">
-                <Icon icon="mdi:close" width="24" height="24" />
+            <div className="flex justify-between items-center px-6 py-4 bg-white shadow-sm sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-800">Order Details</span>
+              </div>
+              <button 
+                onClick={() => setSelectedOrder(null)} 
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <Icon icon="mdi:close" width="20" height="20" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-4 h-[calc(100vh-180px)] overflow-y-auto">
-              {/* Order Info */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-2">Order Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex-1 overflow-y-auto">
+              {/* Order Status */}
+              <div className="px-6 py-4 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-primary"></div>
                   <div>
-                    <p className="text-gray-500">Order ID</p>
-                    <p className="font-medium">{selectedOrder.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Order Date</p>
-                    <p className="font-medium">{selectedOrder.date}</p>
+                    <p className="text-sm font-medium text-gray-800">Order #{selectedOrder.id}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{selectedOrder.date}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Products */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-3">Ordered Products</h3>
-                {selectedOrder.orderItems.map((item, index) => (
-                  <div key={index} className="border-grey-200 border rounded-lg p-3 mb-3 bg-white">
-                    <div className="flex gap-3">
+              {/* Products Section */}
+              <div className="px-6 py-4">
+                <h3 className="text-xs font-medium text-gray-500 mb-4">ORDER ITEMS</h3>
+                <div className="space-y-3">
+                  {selectedOrder.orderItems.map((item, index) => (
+                    <div key={index} className="flex gap-4 bg-white rounded p-3 shadow-sm">
                       <img 
-                        src={item.image}
-                        alt={item.name}
-                        className="w-20 h-20 object-cover rounded"
+                        src="https://karamonline.com/media/catalog/product/cache/509850b11aa2210ac1d2c31fec93d22f/f/s/fs232bl-swsamn-01.jpg" 
+                        alt="product" 
+                        className="w-15 h-15 " 
                       />
                       <div className="flex-1">
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-gray-500">SKU: {item.id}</p>
-                        <div className="flex justify-between mt-2">
-                          <p className="text-sm">Quantity: {item.quantity}</p>
-                          <p className="font-medium">{item.price}</p>
+                        <h4 className="text-sm font-medium text-gray-800">{item.name}</h4>
+                        <p className="text-xs text-gray-500 mt-1">SKU: {item.id}</p>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-xs text-gray-500">Qty: {item.quantity}</span>
+                          <span className="text-sm font-medium text-primary">{item.price}</span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              {/* Payment Details */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-3">Payment Details</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>{selectedOrder.subtotal}</span>
+              {/* Bill Details */}
+              <div className="px-6 py-4">
+                <h3 className="text-xs font-medium text-gray-500 mb-4">BILL DETAILS</h3>
+                <div className="bg-white rounded p-4 shadow-sm space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Items total</span>
+                    <span className="text-gray-800">{selectedOrder.subtotal}</span>
                   </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Shipping</span>
-                    <span>{selectedOrder.shipping}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Delivery charge</span>
+                    <span className="text-gray-800">{selectedOrder.shipping}</span>
                   </div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Tax</span>
-                    <span>{selectedOrder.tax}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Taxes</span>
+                    <span className="text-gray-800">{selectedOrder.tax}</span>
                   </div>
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>{selectedOrder.total}</span>
+                  <div className="pt-3 mt-3 border-t border-gray-100">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-gray-800">Grand total</span>
+                      <span className="text-primary">{selectedOrder.total}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Customer Details */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-3">Customer Details</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="font-medium">{selectedOrder.customer.name}</p>
-                  <p className="text-sm text-gray-600">{selectedOrder.customer.phone}</p>
-                  <p className="text-sm text-gray-600 mt-2">{selectedOrder.customer.address}</p>
+              {/* Delivery Details */}
+              <div className="px-6 py-4">
+                <h3 className="text-xs font-medium text-gray-500 mb-4">DELIVERY DETAILS</h3>
+                <div className="bg-white rounded p-4 shadow-sm">
+                  <div className="flex gap-3 items-start">
+                    <Icon icon="mdi:map-marker-outline" className="text-gray-400 mt-1" width="18" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{selectedOrder.customer.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">{selectedOrder.customer.phone}</p>
+                      <p className="text-xs text-gray-500 mt-1">{selectedOrder.customer.address}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t">
+            <div className="px-6 py-4 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.05)] sticky bottom-0">
               <div className="flex gap-3">
-                <button className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700">
+                <button className="flex-1 bg-primary text-white py-2.5 px-4 rounded text-sm font-medium hover:bg-primary/90 transition-colors">
                   Accept Order
                 </button>
-                <button className="flex-1 bg-red-600 text-white py-2 rounded-lg font-medium hover:bg-red-700">
+                <button className="flex-1 border border-gray-200 text-gray-600 py-2.5 px-4 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
                   Reject Order
                 </button>
               </div>
