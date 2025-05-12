@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }) {
       name: 'Listing', href: '/store-manage/inventory/listing',
       items: [
         { name: 'Product Listing', href: '/store-manage/inventory/listing' },
-        { name: 'Add Product', href: '/store-manage/inventory/dfs468g/add' },
+        { name: 'Add Product', href: `/store-manage/inventory/${sellerId}/add` },
         { name: 'Warehouse', href: '/store-manage/warehouse' },
         { name: 'Inventory Excel', href: '/store-manage/inventory-excel' },
         { name: 'View All', href: '/store-manage/listings' }

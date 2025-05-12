@@ -1,10 +1,4 @@
-// API base URL
 let BASE_URL = process.env.NEXT_PUBLIC_SELLER_API_URL;
-
-// console.log(BASE_URL,'OR')
-// if (process.env.NODE_ENV === 'development') {
-//   BASE_URL = 'http://localhost:5000/v1/seller';
-// }
 
 import axios from "axios";
 import axiosInstance from "../utils/axios";
