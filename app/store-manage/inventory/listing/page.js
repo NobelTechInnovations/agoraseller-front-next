@@ -1,40 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import axiosInstance from '../../../utils/axios';
 
 export default function ProductListing() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statistics, setStatistics] = useState({
+    totalProducts: 0,
+    liveProducts: 0,
+    draftProducts: 0,
+  });
 
-  // Sample data - replace with actual data from your API
-  const products = [
-    {
-      id: 'PRD001',
-      image: 'https://via.placeholder.com/150',
-      name: 'Classic White T-Shirt',
-      category: 'Apparel',
-      createdDate: '2024-03-15',
-      status: 'LIVE',
-      price: '₹599.00',
-    },
-    {
-      id: 'PRD002',
-      image: 'https://via.placeholder.com/150',
-      name: 'Denim Jeans',
-      category: 'Apparel',
-      createdDate: '2024-03-14',
-      status: 'DRAFT',
-      price: '₹1,299.00',
-    },
-    // Add more sample products as needed
-  ];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  // Sample statistics - replace with actual data
-  const statistics = {
-    totalProducts: 150,
-    liveProducts: 120,
-    draftProducts: 30,
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/product');
+      if (response.data.success) {
+        setProducts(response.data.data.products);
+        
+        // Calculate statistics
+        const total = response.data.data.pagination.total;
+        const liveCount = response.data.data.products.filter(p => p.status === 'live').length;
+        const draftCount = response.data.data.products.filter(p => p.status === 'draft').length;
+        
+        setStatistics({
+          totalProducts: total,
+          liveProducts: liveCount,
+          draftProducts: draftCount,
+        });
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to fetch products');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -146,71 +154,77 @@ export default function ProductListing() {
 
       {/* Products Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-        <table className="min-w-full text-sm text-left text-gray-600 bg-white border border-gray-200 shadow rounded-lg">
-          <thead className="bg-gray-100 text-xs uppercase text-gray-700">
-            <tr>
-              <th className="p-2">Product</th>
-              <th className="p-2">Created Date</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">Price</th>
-              <th className="p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-t border-gray-200 hover:bg-gray-50">
-                <td className="p-2">
-                  <div className="flex items-center">
-                    <div className="relative group">
-                      <div className="h-10 w-10 rounded-lg overflow-hidden">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      {/* Tooltip */}
-                      <div className="invisible group-hover:visible absolute z-10 w-48 p-2 mt-2 bg-gray-800 rounded-md shadow-lg text-white text-xs">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="mt-1">Category: {product.category}</p>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-2 text-gray-500">
-                  {new Date(product.createdDate).toLocaleDateString()}
-                </td>
-                <td className="p-2">
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    product.status === 'LIVE' 
-                      ? 'bg-green-200 text-green-700'
-                      : 'bg-yellow-200 text-yellow-700'
-                  }`}>
-                    {product.status}
-                  </span>
-                </td>
-                <td className="p-2 text-gray-900">{product.price}</td>
-                <td className="p-2">
-                  <button
-                    onClick={() => setSelectedProduct(product)}
-                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none mr-2"
-                  >
-                    View Details
-                  </button>
-                  <button
-                    onClick={() => {/* Handle edit */}}
-                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
-                  >
-                    Edit
-                  </button>
-                </td>
+        {loading ? (
+          <div className="p-4 text-center">Loading products...</div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500">{error}</div>
+        ) : (
+          <table className="min-w-full text-sm text-left text-gray-600 bg-white border border-gray-200 shadow rounded-lg">
+            <thead className="bg-gray-100 text-xs uppercase text-gray-700">
+              <tr>
+                <th className="p-2">Product</th>
+                <th className="p-2">Created Date</th>
+                <th className="p-2">Status</th>
+                <th className="p-2">Product ID</th>
+                <th className="p-2">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product._id} className="border-t border-gray-200 hover:bg-gray-50">
+                  <td className="p-2">
+                    <div className="flex items-center">
+                      <div className="relative group">
+                        <div className="h-10 w-10 rounded-lg overflow-hidden">
+                          <img
+                            src={product.images[0]?.thumbnail_image || 'https://via.placeholder.com/150'}
+                            alt={product.descriptions[0]?.title}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        {/* Tooltip */}
+                        <div className="invisible group-hover:visible absolute z-10 w-48 p-2 mt-2 bg-gray-800 rounded-md shadow-lg text-white text-xs">
+                          <p className="font-medium">{product.descriptions[0]?.title}</p>
+                          <p className="mt-1">Category: {product.category_id?.name}</p>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{product.descriptions[0]?.title}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-2 text-gray-500">
+                    {new Date(product.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="p-2">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      product.status === 'live' 
+                        ? 'bg-green-200 text-green-700'
+                        : 'bg-yellow-200 text-yellow-700'
+                    }`}>
+                      {product.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="p-2 text-gray-900">{product.product_id}</td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => setSelectedProduct(product)}
+                      className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none mr-2"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      onClick={() => {/* Handle edit */}}
+                      className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Side Drawer */}
@@ -243,32 +257,32 @@ export default function ProductListing() {
                       <div className="h-full">
                         <div className="mb-6">
                           <img
-                            src={selectedProduct.image}
-                            alt={selectedProduct.name}
+                            src={selectedProduct.images[0]?.thumbnail_image || 'https://via.placeholder.com/150'}
+                            alt={selectedProduct.descriptions[0]?.title}
                             className="w-full h-48 object-cover rounded-lg"
                           />
                         </div>
                         <dl className="space-y-4">
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Product Name</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.name}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.descriptions[0]?.title}</dd>
                           </div>
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Category</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.category}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.category_id?.name}</dd>
                           </div>
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Status</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.status}</dd>
+                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.status.toUpperCase()}</dd>
                           </div>
                           <div>
-                            <dt className="text-sm font-medium text-gray-500">Price</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.price}</dd>
+                            <dt className="text-sm font-medium text-gray-500">Product ID</dt>
+                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.product_id}</dd>
                           </div>
                           <div>
                             <dt className="text-sm font-medium text-gray-500">Created Date</dt>
                             <dd className="mt-1 text-sm text-gray-900">
-                              {new Date(selectedProduct.createdDate).toLocaleDateString()}
+                              {new Date(selectedProduct.createdAt).toLocaleDateString()}
                             </dd>
                           </div>
                         </dl>
