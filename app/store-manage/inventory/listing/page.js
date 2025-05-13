@@ -3,13 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import axiosInstance from '../../../utils/axios';
-
+import S3Image from '../../../components/S3Image';
+import { getSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 export default function ProductListing() {
+  const { data: session, status } = useSession();
+  const sellerId = session?.user?.id;
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [statistics, setStatistics] = useState({
     totalProducts: 0,
     liveProducts: 0,
@@ -17,15 +25,24 @@ export default function ProductListing() {
   });
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (status === 'authenticated') {
+      fetchProducts();
+    }
+  }, [status]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/product');
+      const response = await axiosInstance.get('/product',
+        {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        }
+      );
       if (response.data.success) {
         setProducts(response.data.data.products);
+        setFilteredProducts(response.data.data.products);
         
         // Calculate statistics
         const total = response.data.data.pagination.total;
@@ -44,6 +61,15 @@ export default function ProductListing() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Filter products based on active tab
+    if (activeTab === 'all') {
+      setFilteredProducts(products);
+    } else {
+      setFilteredProducts(products.filter(product => product.status === activeTab));
+    }
+  }, [activeTab, products]);
 
   return (
     <div className="p-3 max-w-7xl mx-auto">
@@ -165,21 +191,25 @@ export default function ProductListing() {
                 <th className="p-2">Product</th>
                 <th className="p-2">Created Date</th>
                 <th className="p-2">Status</th>
-                <th className="p-2">Product ID</th>
+                <th className="p-2">Price/Qty</th>
+                <th className="p-2">Unified SKU</th>
                 <th className="p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+
+              {filteredProducts.map((product) => (
                 <tr key={product._id} className="border-t border-gray-200 hover:bg-gray-50">
                   <td className="p-2">
                     <div className="flex items-center">
                       <div className="relative group">
-                        <div className="h-10 w-10 rounded-lg overflow-hidden">
-                          <img
-                            src={product.images[0]?.thumbnail_image || 'https://via.placeholder.com/150'}
+                        <div className="h-15 w-15 rounded-lg overflow-hidden cursor-pointer" onClick={() => setSelectedImage(product.images[0]?.thumbnail_image)}>
+                          <S3Image
+                            src={product.images[0]?.thumbnail_image}
                             alt={product.descriptions[0]?.title}
-                            className="h-full w-full object-cover"
+                            width={60}
+                            height={60}
+                            className="h-full w-full"
                           />
                         </div>
                         {/* Tooltip */}
@@ -194,7 +224,13 @@ export default function ProductListing() {
                     </div>
                   </td>
                   <td className="p-2 text-gray-500">
-                    {new Date(product.createdAt).toLocaleDateString()}
+                  <dd className="mt-1 text-sm text-gray-900">
+                    {new Date(product.createdAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </dd>
                   </td>
                   <td className="p-2">
                     <span className={`px-2 py-1 rounded text-xs ${
@@ -205,20 +241,21 @@ export default function ProductListing() {
                       {product.status.toUpperCase()}
                     </span>
                   </td>
-                  <td className="p-2 text-gray-900">{product.product_id}</td>
+                  <td className="p-2 text-gray-900">{product.price ?? 'N/A'} / {product.quantity ?? 'N/A'}</td>
+                  <td className="p-2 text-gray-900">{product.unified_sku}</td>
                   <td className="p-2">
                     <button
                       onClick={() => setSelectedProduct(product)}
                       className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none mr-2"
                     >
-                      View Details
+                      Manage Inventory
                     </button>
-                    <button
-                      onClick={() => {/* Handle edit */}}
+                    <Link
+                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
                       className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
                     >
-                      Edit
-                    </button>
+                      Edit product <Icon icon="system-uicons:pencil" className='text-blue-600 ml-1' width="14" height="14" />
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -227,74 +264,34 @@ export default function ProductListing() {
         )}
       </div>
 
-      {/* Side Drawer */}
-      {selectedProduct && (
-        <div className="fixed inset-0 overflow-hidden z-50">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setSelectedProduct(null)} />
-            <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex">
-              <div className="relative w-96">
-                <div className="h-full flex flex-col bg-white shadow-xl">
-                  {/* Header */}
-                  <div className="px-4 py-6 bg-gray-50 sm:px-6">
-                    <div className="flex items-start justify-between">
-                      <h2 className="text-lg font-medium text-gray-900">Product Details</h2>
-                      <button
-                        onClick={() => setSelectedProduct(null)}
-                        className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
-                      >
-                        <span className="sr-only">Close panel</span>
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative flex-1 px-4 py-6 sm:px-6">
-                    <div className="absolute inset-0 px-4 py-6 sm:px-6">
-                      <div className="h-full">
-                        <div className="mb-6">
-                          <img
-                            src={selectedProduct.images[0]?.thumbnail_image || 'https://via.placeholder.com/150'}
-                            alt={selectedProduct.descriptions[0]?.title}
-                            className="w-full h-48 object-cover rounded-lg"
-                          />
-                        </div>
-                        <dl className="space-y-4">
-                          <div>
-                            <dt className="text-sm font-medium text-gray-500">Product Name</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.descriptions[0]?.title}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-gray-500">Category</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.category_id?.name}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-gray-500">Status</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.status.toUpperCase()}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-gray-500">Product ID</dt>
-                            <dd className="mt-1 text-sm text-gray-900">{selectedProduct.product_id}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-sm font-medium text-gray-500">Created Date</dt>
-                            <dd className="mt-1 text-sm text-gray-900">
-                              {new Date(selectedProduct.createdAt).toLocaleDateString()}
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Image Popup */}
+        {selectedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-4xl  p-4 overflow-auto">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-2 right-2 text-white hover:text-gray-300 focus:outline-none"
+              >
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="max-w-full max-h-full overflow-auto flex justify-center items-center">
+                <S3Image
+                  src={selectedImage}
+                  alt="Full size product image"
+                  width={800}
+                  height={800}
+                  className="object-contain max-h-full max-w-full position-initial" // Make sure the image is contained within the container
+                />
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
     </div>
   );
 }
