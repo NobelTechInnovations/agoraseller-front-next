@@ -5,9 +5,11 @@ import { useState } from 'react';
 import Sidebar from './sidebar';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
-
+import NProgress from 'nprogress';
+import RouteProgress from '../RouteProgress';
 
 export default function DashboardLayout({ children }) {
+
   const router = useRouter();
   const { data: session } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -53,6 +55,9 @@ export default function DashboardLayout({ children }) {
   ];
 
   return (
+    <>
+    <RouteProgress />
+    
     <div className="flex min-h-screen">
       {/* Sidebar with close button */}
       <aside className={`fixed inset-y-0 left-0 z-30 w-[240px] transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out bg-[#1a1a1a]`}>
@@ -231,5 +236,6 @@ export default function DashboardLayout({ children }) {
         </div>
       </div>
     </div>
+    </>
   );
 } 
