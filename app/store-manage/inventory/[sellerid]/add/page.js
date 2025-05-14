@@ -270,7 +270,7 @@ const AddProduct = () => {
         }
       };
 
-      const response = await axiosInstance.post('/product', payload);
+      const response = await axiosInstance.post('/v1/seller/product', payload);
       
       if (response.data.success) {
         // Navigate to next screen with seller ID and product ID

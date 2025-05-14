@@ -1,4 +1,4 @@
-let BASE_URL = process.env.NEXT_PUBLIC_SELLER_API_URL;
+let BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 import axios from "axios";
 import axiosInstance from "../utils/axios";
@@ -11,7 +11,7 @@ import axiosInstance from "../utils/axios";
 export const sendOTP = async (phone) => {
   try {
 
-    const response = await axios.post(`${BASE_URL}/user/request-otp`, {
+    const response = await axios.post(`${BASE_URL}/v1/seller/user/request-otp`, {
       phone,
     });
 
@@ -30,7 +30,7 @@ export const sendOTP = async (phone) => {
  */
 export const verifyOTP = async (phone, otp) => {
   try {
-    const response = await axios.post(`${BASE_URL}/user/verify-otp`, {
+    const response = await axios.post(`${BASE_URL}/v1/seller/user/verify-otp`, {
       phone,
       otp,
     });
@@ -49,7 +49,7 @@ export const verifyOTP = async (phone, otp) => {
  */
 export const registerSeller = async (sellerData) => {
   try {
-    const response = await fetch(`${BASE_URL}/user/register`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export const registerSeller = async (sellerData) => {
  */
 export const addBankDetails = async (bankDetails) => {
   try {
-    const response = await axiosInstance.post(`${BASE_URL}/user/add-bank-details`, bankDetails);
+    const response = await axiosInstance.post(`${BASE_URL}/v1/seller/user/add-bank-details`, bankDetails);
     return await response.data;
   } catch (error) {
     console.error("Error adding bank details:", error);
@@ -88,7 +88,7 @@ export const addBankDetails = async (bankDetails) => {
  */
 export const addWarehouse = async (warehouseData, token) => {
   try {
-    const response = await fetch(`${BASE_URL}/user/add-warehouse`, {
+    const response = await fetch(`${BASE_URL}/v1/seller/user/add-warehouse`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -112,7 +112,7 @@ export const addWarehouse = async (warehouseData, token) => {
  */
 export const completeBusinessProfile = async (businessData) => {
   try {
-    const response = await axiosInstance.post(`${BASE_URL}/user/business-data`, businessData);
+    const response = await axiosInstance.post(`${BASE_URL}/v1/seller/user/business-data`, businessData);
 
     return await response.data;
   } catch (error) {

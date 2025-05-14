@@ -22,7 +22,7 @@ export default function OrderTable({ orders, refreshOrders }) {
     try {
       setLoading(prev => ({ ...prev, [orderId]: true }));
       
-      const response = await axiosInstance.post(`/order/${orderId}/process`, {
+      const response = await axiosInstance.post(`/v1/seller/order/${orderId}/process`, {
         order_process: action
       });
 
@@ -145,6 +145,14 @@ export default function OrderTable({ orders, refreshOrders }) {
                     <span className="inline-flex items-center px-3 py-1 text-xs text-primary border border-primary  rounded">
                       Waiting for driver
                       <span className="animate-pulse ml-1">...</span> {/* Animated ellipsis */}
+                    </span>
+                  ) : order.status === 'ready_to_pickup' ? (
+                    <span className="inline-flex items-center px-3 py-1 text-xs text-primary border border-primary  rounded">
+                      Ready for Pickup
+                    </span>
+                  ) : order.status === 'driver_accepted' ? (
+                    <span className="inline-flex items-center px-3 py-1 text-xs text-primary border border-primary  rounded">
+                      Driver is on the way
                     </span>
                   ) : null}
                 </div>

@@ -33,7 +33,7 @@ export default function ProductListing() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/product',
+      const response = await axiosInstance.get('/v1/seller/product',
         {
           headers: {
             Authorization: `Bearer ${session.accessToken}`,

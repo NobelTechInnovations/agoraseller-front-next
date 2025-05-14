@@ -238,7 +238,7 @@ const ProductDetailsPage = ({ params }) => {
     const fetchProductDetails = async () => {
       try {
         const session = await getSession();
-        const response = await axiosInstance.get(`/product/${productId}`,
+        const response = await axiosInstance.get(`/v1/seller/product/${productId}`,
           {
             headers: {
               Authorization: `Bearer ${session.accessToken}`,

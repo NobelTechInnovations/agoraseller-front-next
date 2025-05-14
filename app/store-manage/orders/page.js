@@ -17,7 +17,7 @@ export default function OrdersPage() {
     setLoading(true);
     const session = await getSession();
     try {
-      const response = await axiosInstance.get('/order/list', {
+      const response = await axiosInstance.get('/v1/seller/order/list', {
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
         },
@@ -28,13 +28,15 @@ export default function OrdersPage() {
         processing: response.data.data.processing || [],
         shipped: response.data.data.shipped || [],
         ready_to_ship: response.data.data.ready_to_ship || [],
+        ready_to_pickup: response.data.data.ready_to_pickup || [],
+        driver_accepted: response.data.data.driver_accepted || [],
         cancelled: response.data.data.cancelled || [],
         rejected: response.data.data.rejected || [],
         delivered: response.data.data.delivered || [],
       });
     } catch (err) {
       console.error("Error fetching orders:", err);
-      setOrdersData({ pending: [], processing: [], shipped: [], ready_to_ship: [], cancelled: [], rejected: [], delivered: [] });
+      setOrdersData({ pending: [], processing: [], shipped: [], ready_to_ship: [], ready_to_pickup: [], driver_accepted: [], cancelled: [], rejected: [], delivered: [] });
     }
     setLoading(false);
   }, []);
@@ -84,7 +86,9 @@ export default function OrdersPage() {
     // ordersToShow = (ordersData.processing || []).map(order => transformOrder(order, 'processing'));
     ordersToShow = [
       ...(ordersData.processing || []).map(order => transformOrder(order, 'processing')),
-      ...(ordersData.ready_to_ship || []).map(order => transformOrder(order, 'ready_to_ship'))
+      ...(ordersData.ready_to_ship || []).map(order => transformOrder(order, 'ready_to_ship')),
+      ...(ordersData.ready_to_pickup || []).map(order => transformOrder(order, 'ready_to_pickup')),
+      ...(ordersData.driver_accepted || []).map(order => transformOrder(order, 'driver_accepted'))
     ];
 
   } else if (activeTab === 'shipped') {
@@ -118,7 +122,7 @@ export default function OrdersPage() {
               className={`${activeTab === 'ready-to-ship' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}
               onClick={() => setActiveTab('ready-to-ship')}
             >
-              Ready to Ship  ({(ordersData?.processing?.length || 0) + (ordersData?.ready_to_ship?.length || 0)})
+              Ready to Ship  ({(ordersData?.processing?.length || 0) + (ordersData?.ready_to_ship?.length || 0) + (ordersData?.ready_to_pickup?.length || 0) + (ordersData?.driver_accepted?.length || 0)})
             </button>
             <button
               className={`${activeTab === 'shipped' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-500 cursor-pointer'}`}

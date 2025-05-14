@@ -56,7 +56,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axiosInstance.get('/category/list');
+      const response = await axiosInstance.get('/v1/admin/category/list');
       if (response.data.success) {
         setCategories(response.data.data.categories);
       }

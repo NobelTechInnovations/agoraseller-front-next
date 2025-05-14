@@ -32,14 +32,14 @@ const handler = NextAuth({
       async authorize(credentials) {
         try {
           let payload = {};
-          let apiURL = `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/auth`;
+          let apiURL = `${process.env.NEXT_PUBLIC_API_URL}/v1/admin/auth`;
 
           if (credentials.auth === 'seller') {
             payload = {
               phone: credentials.phone,
               otp: credentials.otp,
             };
-            apiURL = `${process.env.NEXT_PUBLIC_SELLER_API_URL}/user/verify-otp`;
+            apiURL = `${process.env.NEXT_PUBLIC_API_URL}/v1/seller/user/verify-otp`;
 
           } else {
             // Default login (email + password)
