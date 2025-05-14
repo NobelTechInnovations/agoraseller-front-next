@@ -27,6 +27,10 @@ import {
   MenuItem,
   Collapse,
   Grid,
+  Pagination,
+  Stack,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,7 +40,9 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import axiosInstance from '../../../utils/axios';
+import { debounce } from 'lodash';
 
 export default function AttributesPage() {
   const theme = useTheme();
@@ -45,32 +51,82 @@ export default function AttributesPage() {
   const [newAttribute, setNewAttribute] = useState({
     name: '',
     isRequired: false,
+    type: 'variant'
   });
-  const [newValue, setNewValue] = useState('');
+  const [newValue, setNewValue] = useState({
+    name: '',
+    value: '',
+    attributeId: ''
+  });
   const [expandedAttribute, setExpandedAttribute] = useState(null);
-  const [attributes, setAttributes] = useState([
-    {
-      id: 1,
-      name: 'Color',
-      isRequired: true,
-      status: 'active',
-      values: ['Red', 'Blue', 'Green', 'Yellow', 'Black', 'White'],
-    },
-    {
-      id: 2,
-      name: 'Size',
-      isRequired: true,
-      status: 'active',
-      values: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    },
-    {
-      id: 3,
-      name: 'Material',
-      isRequired: false,
-      status: 'active',
-      values: ['Cotton', 'Polyester', 'Wool', 'Silk', 'Leather'],
-    },
-  ]);
+  const [attributes, setAttributes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchAttributes = async (page = 1, search = '') => {
+    setLoading(true);
+    setError(null);
+    try {
+      let url = `/v1/admin/attribute/list?page=${page}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      console.log('Fetching URL:', url); // Debug log
+
+      const response = await axiosInstance.get(url);
+      console.log('API Response:', response.data); // Debug log
+
+      if (response.data.success) {
+        setAttributes(response.data.data.attributes || []);
+        setPagination(response.data.data.pagination || {
+          total: 0,
+          page: 1,
+          limit: 10,
+          pages: 0
+        });
+      } else {
+        setError(response.data.message || 'Failed to fetch attributes');
+      }
+    } catch (error) {
+      console.error('Error fetching attributes:', error);
+      setError(error.response?.data?.message || 'Failed to fetch attributes');
+      setAttributes([]);
+      setPagination({
+        total: 0,
+        page: 1,
+        limit: 10,
+        pages: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Debounce search to prevent too many API calls
+  const debouncedSearch = useCallback(
+    debounce((search) => {
+      fetchAttributes(1, search);
+    }, 500),
+    []
+  );
+
+  useEffect(() => {
+    debouncedSearch(searchQuery);
+    return () => debouncedSearch.cancel();
+  }, [searchQuery, debouncedSearch]);
+
+  useEffect(() => {
+    if (searchQuery === '') {
+      fetchAttributes(currentPage);
+    }
+  }, [currentPage]);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -78,27 +134,26 @@ export default function AttributesPage() {
     setNewAttribute({
       name: '',
       isRequired: false,
+      type: 'variant'
     });
   };
 
-  const handleAddAttribute = () => {
+  const handleAddAttribute = async () => {
     if (newAttribute.name.trim()) {
-      const newId = Math.max(...attributes.map(a => a.id)) + 1;
-      setAttributes([
-        ...attributes,
-        {
-          id: newId,
-          ...newAttribute,
-          status: 'active',
-          values: [],
+      try {
+        const response = await axiosInstance.post('/v1/admin/attribute/add', newAttribute);
+        if (response.data.success) {
+          fetchAttributes(); // Refresh the list
+          handleClose();
         }
-      ]);
-      handleClose();
+      } catch (error) {
+        console.error('Error creating attribute:', error);
+      }
     }
   };
 
   const handleDeleteAttribute = (id) => {
-    setAttributes(attributes.filter(attribute => attribute.id !== id));
+    setAttributes(attributes.filter(attribute => attribute._id !== id));
   };
 
   const handleInputChange = (e) => {
@@ -109,36 +164,49 @@ export default function AttributesPage() {
     }));
   };
 
-  const handleAddValue = (attributeId) => {
-    if (newValue.trim()) {
-      setAttributes(attributes.map(attr => {
-        if (attr.id === attributeId) {
-          return {
-            ...attr,
-            values: [...attr.values, newValue.trim()]
-          };
+  const handleAddValue = async (attributeId) => {
+    if (newValue.name.trim()) {
+      try {
+        const payload = {
+          name: newValue.name,
+          value: newValue.value || newValue.name, // Use name as value if no specific value provided
+          attributeId: attributeId
+        };
+        const response = await axiosInstance.post('/v1/admin/attribute-option/create', payload);
+        if (response.data.success) {
+          fetchAttributes(); // Refresh the list
+          setNewValue({
+            name: '',
+            value: '',
+            attributeId: ''
+          });
         }
-        return attr;
-      }));
-      setNewValue('');
+      } catch (error) {
+        console.error('Error adding value:', error);
+      }
     }
   };
 
-  const handleDeleteValue = (attributeId, value) => {
+  const handleDeleteValue = (attributeId, valueId) => {
     setAttributes(attributes.map(attr => {
-      if (attr.id === attributeId) {
+      if (attr._id === attributeId) {
         return {
           ...attr,
-          values: attr.values.filter(v => v !== value)
+          options: attr.options.filter(option => option._id !== valueId)
         };
       }
       return attr;
     }));
   };
 
-  const filteredAttributes = attributes.filter(attribute =>
-    attribute.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <Box sx={{ px: 4 }}>
@@ -166,7 +234,7 @@ export default function AttributesPage() {
               variant="outlined"
               placeholder="Search attributes..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
@@ -178,140 +246,180 @@ export default function AttributesPage() {
             />
           </Box>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Required</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Values</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {filteredAttributes.map((attribute) => (
-                  <>
-                    <TableRow key={attribute.id}>
-                      <TableCell>{attribute.name}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={attribute.isRequired ? 'Yes' : 'No'}
-                          color={attribute.isRequired ? 'success' : 'default'}
-                          size="small"
-                          sx={{ borderRadius: 1 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={attribute.status}
-                          color={attribute.status === 'active' ? 'success' : 'default'}
-                          size="small"
-                          sx={{ borderRadius: 1 }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          {attribute.values.slice(0, 3).map((value, index) => (
-                            <Chip
-                              key={index}
-                              label={value}
-                              size="small"
-                              onDelete={() => handleDeleteValue(attribute.id, value)}
-                              sx={{ borderRadius: 1 }}
-                            />
-                          ))}
-                          {attribute.values.length > 3 && (
-                            <Chip
-                              label={`+${attribute.values.length - 3} more`}
-                              size="small"
-                              onClick={() => setExpandedAttribute(expandedAttribute === attribute.id ? null : attribute.id)}
-                              sx={{ borderRadius: 1 }}
-                            />
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => setExpandedAttribute(expandedAttribute === attribute.id ? null : attribute.id)}
-                        >
-                          {expandedAttribute === attribute.id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{ color: theme.palette.primary.main }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{ color: theme.palette.error.main }}
-                          onClick={() => handleDeleteAttribute(attribute.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
-                        <Collapse in={expandedAttribute === attribute.id}>
-                          <Box sx={{ p: 2, bgcolor: 'background.default' }}>
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid item xs={12}>
-                                <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                  All Values
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                  {attribute.values.map((value, index) => (
-                                    <Chip
-                                      key={index}
-                                      label={value}
-                                      size="small"
-                                      onDelete={() => handleDeleteValue(attribute.id, value)}
-                                      sx={{ borderRadius: 1 }}
-                                    />
-                                  ))}
-                                </Box>
-                              </Grid>
-                              <Grid item xs={12}>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
-                                  <TextField
-                                    size="small"
-                                    placeholder="Add new value"
-                                    value={newValue}
-                                    onChange={(e) => setNewValue(e.target.value)}
-                                    sx={{ flexGrow: 1 }}
-                                  />
-                                  <Button
-                                    variant="contained"
-                                    onClick={() => handleAddValue(attribute.id)}
-                                    disabled={!newValue.trim()}
-                                    sx={{
-                                      background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
-                                      '&:hover': {
-                                        background: 'linear-gradient(135deg, #4e4376 0%, #2b5876 100%)',
-                                      },
-                                    }}
-                                  >
-                                    Add Value
-                                  </Button>
-                                </Box>
-                              </Grid>
-                            </Grid>
+              <TableBody sx={{ backgroundColor: '#f5f5f5' }}>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      <CircularProgress size={24} />
+                    </TableCell>
+                  </TableRow>
+                ) : attributes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      No attributes found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  attributes.map((attribute) => (
+                    <>
+                      <TableRow key={attribute._id}>
+                        <TableCell>{attribute.name}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={attribute.isRequired ? 'Yes' : 'No'}
+                            color={attribute.isRequired ? 'success' : 'default'}
+                            size="small"
+                            sx={{ borderRadius: 1 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={attribute.type}
+                            color="primary"
+                            size="small"
+                            sx={{ borderRadius: 1 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {attribute.options?.slice(0, 3).map((option) => (
+                              <Chip
+                                key={option._id}
+                                label={option.name}
+                                size="small"
+                                onDelete={() => handleDeleteValue(attribute._id, option._id)}
+                                sx={{ borderRadius: 1 }}
+                              />
+                            ))}
+                            {attribute.options?.length > 3 && (
+                              <Chip
+                                label={`+${attribute.options.length - 3} more`}
+                                size="small"
+                                onClick={() => setExpandedAttribute(expandedAttribute === attribute._id ? null : attribute._id)}
+                                sx={{ borderRadius: 1 }}
+                              />
+                            )}
                           </Box>
-                        </Collapse>
-                      </TableCell>
-                    </TableRow>
-                  </>
-                ))}
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => setExpandedAttribute(expandedAttribute === attribute._id ? null : attribute._id)}
+                          >
+                            {expandedAttribute === attribute._id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            sx={{ color: theme.palette.error.main }}
+                            onClick={() => handleDeleteAttribute(attribute._id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
+                          <Collapse in={expandedAttribute === attribute._id}>
+                            <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+                              <Grid container spacing={2} alignItems="center">
+                                <Grid item xs={12}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                    All Values
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                    {attribute.options?.map((option) => (
+                                      <Chip
+                                        key={option._id}
+                                        label={option.name}
+                                        size="small"
+                                        onDelete={() => handleDeleteValue(attribute._id, option._id)}
+                                        sx={{ borderRadius: 1 }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={12}>
+                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <TextField
+                                      size="small"
+                                      placeholder="Value name"
+                                      value={newValue.name}
+                                      onChange={(e) => setNewValue(prev => ({ ...prev, name: e.target.value }))}
+                                      sx={{ flexGrow: 1 }}
+                                    />
+                                    {attribute.type === 'variant' && (
+                                      <TextField
+                                        size="small"
+                                        placeholder="Value (e.g. #000 for color)"
+                                        value={newValue.value}
+                                        onChange={(e) => setNewValue(prev => ({ ...prev, value: e.target.value }))}
+                                        sx={{ flexGrow: 1 }}
+                                      />
+                                    )}
+                                    <Button
+                                      variant="contained"
+                                      onClick={() => handleAddValue(attribute._id)}
+                                      disabled={!newValue.name.trim()}
+                                      sx={{
+                                        background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
+                                        '&:hover': {
+                                          background: 'linear-gradient(135deg, #4e4376 0%, #2b5876 100%)',
+                                        },
+                                      }}
+                                    >
+                                      Add Value
+                                    </Button>
+                                  </Box>
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
+
+          {pagination.total > 0 && (
+            <Stack spacing={2} alignItems="center" sx={{ mt: 3 }}>
+              <Pagination 
+                count={pagination.pages} 
+                page={currentPage}
+                onChange={handlePageChange}
+                color="primary"
+                shape="rounded"
+                showFirstButton 
+                showLastButton
+                disabled={loading}
+              />
+              <Typography variant="body2" color="text.secondary">
+                Total {pagination.total} items
+              </Typography>
+            </Stack>
+          )}
         </CardContent>
       </Card>
 
-      {/* Add Attribute Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 600 }}>Add New Attribute</DialogTitle>
         <DialogContent>
@@ -326,7 +434,7 @@ export default function AttributesPage() {
               sx={{ mb: 2 }}
               required
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Required</InputLabel>
               <Select
                 name="isRequired"
@@ -336,6 +444,18 @@ export default function AttributesPage() {
               >
                 <MenuItem value={true}>Yes</MenuItem>
                 <MenuItem value={false}>No</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Type</InputLabel>
+              <Select
+                name="type"
+                value={newAttribute.type}
+                onChange={handleInputChange}
+                label="Type"
+              >
+                <MenuItem value="variant">Variant</MenuItem>
+                <MenuItem value="meta">Meta</MenuItem>
               </Select>
             </FormControl>
           </Box>
