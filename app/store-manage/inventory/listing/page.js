@@ -185,22 +185,21 @@ export default function ProductListing() {
         ) : error ? (
           <div className="p-4 text-center text-red-500">{error}</div>
         ) : (
-          <table className="min-w-full text-sm text-left text-gray-600 bg-white border border-gray-200 shadow rounded-lg">
-            <thead className="bg-gray-100 text-xs uppercase text-gray-700">
-              <tr>
-                <th className="p-2">Product</th>
-                <th className="p-2">Created Date</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Price/Qty</th>
-                <th className="p-2">Unified SKU</th>
-                <th className="p-2">Actions</th>
+          <table className="min-w-full border-collapse text-sm text-left text-gray-600 bg-white border border-gray-200 shadow rounded-lg">
+            <thead className="bg-gray-100 border-b border-gray-200 text-xs uppercase text-gray-700">
+              <tr className='border-b border-gray-200'>
+                <th className="p-2 w-[30%]">Product</th>
+                <th className="p-2 w-[15%]">Created Date</th>
+                <th className="p-2 w-[10%]">Status</th>
+                <th className="p-2 w-[10%]">Price/Qty</th>
+                <th className="p-2 w-[10%]">Unified SKU</th>
+                <th className="p-2 w-[15%]">Actions</th>
               </tr>
             </thead>
             <tbody>
-
               {filteredProducts.map((product) => (
                 <tr key={product._id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="p-2">
+                  <td className="p-2 border border-gray-200">
                     <div className="flex items-center">
                       <div className="relative group">
                         <div className="h-15 w-15 rounded-lg overflow-hidden cursor-pointer" onClick={() => setSelectedImage(product.images[0]?.thumbnail_image)}>
@@ -218,21 +217,24 @@ export default function ProductListing() {
                           <p className="mt-1">Category: {product.category_id?.name}</p>
                         </div>
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.descriptions[0]?.title}</div>
+                      <div className="ml-4 max-w-[calc(100%-80px)]">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {product.descriptions[0]?.title.split(' ').slice(0, 4).join(' ')}
+                          {product.descriptions[0]?.title.split(' ').length > 4 ? '...' : ''}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="p-2 text-gray-500">
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {new Date(product.createdAt).toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </dd>
+                  <td className="p-2 text-gray-500 border border-gray-200">
+                    <dd className="mt-1 text-sm text-gray-900 truncate">
+                      {new Date(product.createdAt).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </dd>
                   </td>
-                  <td className="p-2">
+                  <td className="p-2 border border-gray-200">
                     <span className={`px-2 py-1 rounded text-xs ${
                       product.status === 'live' 
                         ? 'bg-green-200 text-green-700'
@@ -241,21 +243,23 @@ export default function ProductListing() {
                       {product.status.toUpperCase()}
                     </span>
                   </td>
-                  <td className="p-2 text-gray-900">{product.price ?? 'N/A'} / {product.quantity ?? 'N/A'}</td>
-                  <td className="p-2 text-gray-900">{product.unified_sku}</td>
+                  <td className="p-2 text-gray-900 truncate border border-gray-200">{product.price ?? 'N/A'} / {product.quantity ?? 'N/A'}</td>
+                  <td className="p-2 text-gray-900 truncate border border-gray-200">{product.unified_sku}</td>
                   <td className="p-2">
-                    <button
-                      onClick={() => setSelectedProduct(product)}
-                      className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none mr-2"
-                    >
-                      Manage Inventory
-                    </button>
-                    <Link
-                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
-                      className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
-                    >
-                      Edit product <Icon icon="system-uicons:pencil" className='text-blue-600 ml-1' width="14" height="14" />
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSelectedProduct(product)}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
+                      >
+                        Manage
+                      </button>
+                      <Link
+                        href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none flex items-center"
+                      >
+                        Edit <Icon icon="system-uicons:pencil" className='text-blue-600 ml-1' width="14" height="14" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

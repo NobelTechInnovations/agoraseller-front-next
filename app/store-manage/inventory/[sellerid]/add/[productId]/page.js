@@ -296,8 +296,9 @@ const ProductDetailsPage = ({ params }) => {
     setVariantCombinations(prev => prev.filter((_, index) => index !== indexToDelete));
   };
 
-  // Add predefined brands
+  // Update predefinedBrands format for react-select
   const predefinedBrands = [
+    { value: '', label: 'Select Brand', isDisabled: true },
     { value: 'generic', label: 'Generic Product' },
     { value: 'brand1', label: 'Grand Brand 1' },
     { value: 'brand2', label: 'Grand Brand 2' },
@@ -522,20 +523,40 @@ const ProductDetailsPage = ({ params }) => {
                           </label>
                           {attribute.options && attribute.options.length > 0 ? (
                             <>
-                              <select
+                              <Select
                                 id={attribute.name}
-                                value={attributeValues[attribute.name] || ''}
-                                onChange={(e) => handleAttributeChange(attribute.name, e.target.value)}
-                                className={`mt-1 block w-full border ${errors[attribute.name] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                                required={attribute.isRequired}
-                              >
-                                <option value="">Select {attribute.name}</option>
-                                {attribute.options.map(option => (
-                                  <option key={option._id} value={option.value}>
-                                    {option.name}
-                                  </option>
-                                ))}
-                              </select>
+                                options={attribute.options.map(option => ({
+                                  value: option.value,
+                                  label: option.name
+                                }))}
+                                value={attributeValues[attribute.name] ? {
+                                  value: attributeValues[attribute.name],
+                                  label: attribute.options.find(opt => opt.value === attributeValues[attribute.name])?.name
+                                } : null}
+                                onChange={(selectedOption) => handleAttributeChange(attribute.name, selectedOption?.value || '')}
+                                className="basic-select"
+                                classNamePrefix="select"
+                                isSearchable={true}
+                                placeholder={`Search ${attribute.name}...`}
+                                isClearable={!attribute.isRequired}
+                                styles={{
+                                  control: (base) => ({
+                                    ...base,
+                                    borderColor: errors[attribute.name] ? '#EF4444' : '#111827',
+                                    '&:hover': {
+                                      borderColor: errors[attribute.name] ? '#EF4444' : '#111827'
+                                    }
+                                  }),
+                                  placeholder: (base) => ({
+                                    ...base,
+                                    color: '#6B7280',
+                                  }),
+                                  menu: (base) => ({
+                                    ...base,
+                                    zIndex: 50
+                                  })
+                                }}
+                              />
                               {errors[attribute.name] && (
                                 <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
                               )}
@@ -572,26 +593,34 @@ const ProductDetailsPage = ({ params }) => {
                         <label htmlFor="brand" className="block font-bold text-sm text-gray-700 mb-1">
                           Brand*
                         </label>
-                        <select
+                        <Select
                           id="brand"
-                          value={brand}
-                          onChange={(e) => {
-                            setBrand(e.target.value);
-                            if (e.target.value === 'generic') {
+                          options={predefinedBrands}
+                          value={predefinedBrands.find(option => option.value === brand)}
+                          onChange={(selectedOption) => {
+                            setBrand(selectedOption.value);
+                            if (selectedOption.value === 'generic') {
                               setBrandDocument(null);
                               setBrandDocumentError('');
                             }
                           }}
-                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                          required
-                        >
-                          <option value="">Select Brand</option>
-                          {predefinedBrands.map((brandOption) => (
-                            <option key={brandOption.value} value={brandOption.value}>
-                              {brandOption.label}
-                            </option>
-                          ))}
-                        </select>
+                          className="basic-select"
+                          classNamePrefix="select"
+                          isSearchable={true}
+                          placeholder="Search and select brand..."
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              borderColor: errors.brand ? '#EF4444' : '#111827',
+                              '&:hover': {
+                                borderColor: errors.brand ? '#EF4444' : '#111827'
+                              }
+                            })
+                          }}
+                        />
+                        {errors.brand && (
+                          <p className="mt-1 text-sm text-red-600">{errors.brand}</p>
+                        )}
 
                         {/* Brand Document Upload */}
                         {brand && brand !== 'generic' && (

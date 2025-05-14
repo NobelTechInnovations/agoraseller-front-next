@@ -94,15 +94,15 @@ export default function DashboardLayout({ children }) {
                 {/* Store Name */}
                 <div className="flex items-center gap-2">
                   <img
-                    src="https://www.freepnglogos.com/uploads/flipkart-logo-png/flipkart-com-logo-internet-ltd-state-of-kerala-10.png"
+                    src="https://mma.prnewswire.com/media/2409431/Agora_Logo_Logo.jpg?p=facebook"
                     alt="logo"
                     width={120}
                     height={50}
                   />
 
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg font-semibold text-gray-800">By Jaipuri Legacy</h4>
-                    <span className="text-xs text-dark bg-gray-300 px-2 py-0.5 rounded-sm">Jaipur</span>
+                  <div className="flex items-center gap-2 border border-gray-200 bg-gray-100 p-2 rounded-md">
+                    <h4 className="text-xs  font-semibold text-gray-800">By Jaipuri Legacy</h4>
+                    <span className="text-xs text-dark py-0.5 rounded-sm">| Jaipur</span>
                   </div>
                 </div>
               </div>
