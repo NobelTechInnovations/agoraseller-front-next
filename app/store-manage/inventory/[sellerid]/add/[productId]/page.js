@@ -28,6 +28,45 @@ const GallerySkeleton = () => (
   </div>
 );
 
+// Category Hierarchy Skeleton
+const CategoryHierarchySkeleton = () => (
+  <div className="mb-6">
+    <div className="h-6 w-24 bg-gray-200 rounded mb-2"></div>
+    <div className="flex items-center gap-2">
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="flex items-center">
+          <div className="h-4 w-24 bg-gray-200 rounded"></div>
+          {item < 3 && <span className="mx-2">{'>'}</span>}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// Product Details Skeleton
+const ProductDetailsSkeleton = () => (
+  <div className="mb-8">
+    <div className="h-5 w-32 bg-gray-200 rounded mb-2"></div>
+    <div className="h-8 w-3/4 bg-gray-200 rounded mb-4"></div>
+  </div>
+);
+
+// Attributes Section Skeleton
+const AttributesSkeleton = () => (
+  <div className="grid grid-cols-2 gap-6">
+    <div className="col-span-2 bg-gray-100 p-4">
+      <div className="h-6 w-40 bg-gray-200 rounded mb-2"></div>
+      <div className="h-4 w-64 bg-gray-200 rounded"></div>
+    </div>
+    {[1, 2, 3, 4].map((item) => (
+      <div key={item} className="col-span-1">
+        <div className="h-5 w-32 bg-gray-200 rounded mb-2"></div>
+        <div className="h-10 w-full bg-gray-200 rounded"></div>
+      </div>
+    ))}
+  </div>
+);
+
 const ProductDetailsPage = ({ params }) => {
   const router = useRouter();
   const unwrappedParams = use(params);
@@ -45,9 +84,7 @@ const ProductDetailsPage = ({ params }) => {
   });
 
   // Form state
-  const [color, setColor] = useState('');
-  const [fabric, setFabric] = useState('');
-  const [pattern, setPattern] = useState('');
+  const [attributeValues, setAttributeValues] = useState({});
   const [mrpPrice, setMrpPrice] = useState('');
   const [wdrpPrice, setWdrpPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
@@ -128,17 +165,11 @@ const ProductDetailsPage = ({ params }) => {
     return `/api/images/${key}`;
   };
 
-  const handleAttributeChange = (attributeId) => {
-    setSelectedAttributes(prev => {
-      if (prev.includes(attributeId)) {
-        return prev.filter(id => id !== attributeId);
-      }
-      if (prev.length >= 3) {
-        // Show error or notification that max 3 attributes can be selected
-        return prev;
-      }
-      return [...prev, attributeId];
-    });
+  const handleAttributeChange = (attributeName, value) => {
+    setAttributeValues(prev => ({
+      ...prev,
+      [attributeName]: value
+    }));
   };
 
   const handleAddVariation = () => {
@@ -178,6 +209,17 @@ const ProductDetailsPage = ({ params }) => {
   const validateForm = () => {
     const newErrors = {};
     
+    // Validate required attributes
+    if (product?.attributes) {
+      product.attributes
+        .filter(attr => attr.type === 'meta' && attr.isRequired)
+        .forEach(attr => {
+          if (!attributeValues[attr.name] || attributeValues[attr.name].trim() === '') {
+            newErrors[attr.name] = `${attr.name} is required`;
+          }
+        });
+    }
+
     if (!mrpPrice) newErrors.mrpPrice = "MRP price is required";
     else if (isNaN(mrpPrice) || Number(mrpPrice) <= 0) newErrors.mrpPrice = "MRP price must be a positive number";
     
@@ -211,9 +253,7 @@ const ProductDetailsPage = ({ params }) => {
     // Placeholder for API call to save data
     console.log("Submitting product details:", {
       productId,
-      color,
-      fabric,
-      pattern,
+      attributeValues,
       mrpPrice,
       wdrpPrice,
       sellingPrice,
@@ -222,10 +262,6 @@ const ProductDetailsPage = ({ params }) => {
       brand,
       manufacturer,
       packer,
-      variations: {
-        sizes: sizeVariations,
-        colors: colorVariations
-      },
       categoryPath
     });
     
@@ -278,88 +314,107 @@ const ProductDetailsPage = ({ params }) => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Category Path Display */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span className="font-medium">Category:</span>
-          <div className="flex items-center">
-            {product?.category}
+      {loading ? (
+        <CategoryHierarchySkeleton />
+      ) : (
+        <div className="mb-6">
+          <span className="font-bold text-md">Category</span>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center">
+              {product?.category_hierarchy?.map((cat, index) => (
+                <div key={cat._id} className="flex items-center">
+                  <span className="font-bold text-md underline">{cat.name}</span>
+                  {index < product.category_hierarchy.length - 1 && (
+                    <span className="mx-2">{'>'}</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex gap-2">
         {/* Main Form Container */}
         <div className="flex-1 w-3/4">
           <div className="bg-white p-6 rounded-lg border border-gray-300">
             {/* Welcome Section */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                Product Details - {product?.title}
-              </h3>
-
-              <div className="bg-gray-200 p-4 mb-4">
-                <p className="text-sm text-gray-600">
-                  <b>Note:</b> Please provide complete details about your product specifications, pricing, and inventory information.
-                </p>
+            {loading ? (
+              <ProductDetailsSkeleton />
+            ) : (
+              <div className="mb-8">
+                <h4 className="text-md font-bold text-gray-600">Product Details</h4>
+                <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+                  {product?.title}
+                </h3>
               </div>
+            )}
 
-              <div className="flex gap-6">
-                {/* Product Form - Full width */}
-                <div className="w-full">
-                  <form>
+            <div className="bg-gray-200 p-4 mb-4">
+              <p className="text-sm text-gray-600">
+                <b>Note:</b> Please provide complete details about your product specifications, pricing, and inventory information.
+              </p>
+            </div>
+
+            <div className="flex gap-6">
+              {/* Product Form - Full width */}
+              <div className="w-full">
+                <form>
+                  {loading ? (
+                    <AttributesSkeleton />
+                  ) : (
                     <div className="grid grid-cols-2 gap-6">
                       {/* Material Details Section */}
                       <div className="col-span-2 bg-gray-100 p-4">
-                        <h4 className="font-medium text-gray-800">Material Details</h4>
+                        <h4 className="font-medium text-gray-800">Product Attributes</h4>
                         <p className="text-sm text-gray-600">
-                          Provide information about the product&apos;s material characteristics.
+                          Provide information about the product&apos;s attributes.
                         </p>
                       </div>
                       
-                      {/* Color */}
-                      <div className="col-span-1">
-                        <label htmlFor="color" className="block font-bold text-sm text-gray-700 mb-1">
-                          Color
-                        </label>
-                        <input
-                          type="text"
-                          id="color"
-                          value={color}
-                          onChange={(e) => setColor(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                          placeholder="e.g. Red, Blue, Black"
-                        />
-                      </div>
-                      
-                      {/* Fabric */}
-                      <div className="col-span-1">
-                        <label htmlFor="fabric" className="block font-bold text-sm text-gray-700 mb-1">
-                          Fabric
-                        </label>
-                        <input
-                          type="text"
-                          id="fabric"
-                          value={fabric}
-                          onChange={(e) => setFabric(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                          placeholder="e.g. Cotton, Polyester, Silk"
-                        />
-                      </div>
-                      
-                      {/* Pattern */}
-                      <div className="col-span-2">
-                        <label htmlFor="pattern" className="block font-bold text-sm text-gray-700 mb-1">
-                          Pattern
-                        </label>
-                        <input
-                          type="text"
-                          id="pattern"
-                          value={pattern}
-                          onChange={(e) => setPattern(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900  focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                          placeholder="e.g. Solid, Striped, Floral"
-                        />
-                      </div>
+                      {product?.attributes?.filter(attr => attr.type === 'meta').map((attribute) => (
+                        <div key={attribute._id} className="col-span-1">
+                          <label htmlFor={attribute.name} className="block font-bold text-sm text-gray-700 mb-1">
+                            {attribute.name} {attribute.isRequired && '*'}
+                          </label>
+                          {attribute.options && attribute.options.length > 0 ? (
+                            <>
+                              <select
+                                id={attribute.name}
+                                value={attributeValues[attribute.name] || ''}
+                                onChange={(e) => handleAttributeChange(attribute.name, e.target.value)}
+                                className={`mt-1 block w-full border ${errors[attribute.name] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                                required={attribute.isRequired}
+                              >
+                                <option value="">Select {attribute.name}</option>
+                                {attribute.options.map(option => (
+                                  <option key={option._id} value={option.value}>
+                                    {option.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {errors[attribute.name] && (
+                                <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="text"
+                                id={attribute.name}
+                                value={attributeValues[attribute.name] || ''}
+                                onChange={(e) => handleAttributeChange(attribute.name, e.target.value)}
+                                className={`mt-1 block w-full border ${errors[attribute.name] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                                placeholder={`Enter ${attribute.name}`}
+                                required={attribute.isRequired}
+                              />
+                              {errors[attribute.name] && (
+                                <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      ))}
                       
                       {/* Pricing Section */}
                       <div className="col-span-2 bg-gray-100 p-4">
@@ -480,7 +535,13 @@ const ProductDetailsPage = ({ params }) => {
                                   <input
                                     type="checkbox"
                                     checked={selectedAttributes.includes(attr.id)}
-                                    onChange={() => handleAttributeChange(attr.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedAttributes(prev => [...prev, attr.id]);
+                                      } else {
+                                        setSelectedAttributes(prev => prev.filter(id => id !== attr.id));
+                                      }
+                                    }}
                                     className="form-checkbox h-4 w-4 text-blue-600"
                                     disabled={!selectedAttributes.includes(attr.id) && selectedAttributes.length >= 3}
                                   />
@@ -656,39 +717,26 @@ const ProductDetailsPage = ({ params }) => {
                           placeholder="e.g. Nike, Apple, Samsung"
                         />
                       </div>
-                      
-                      {/* Manufacturer */}
-                      <div className="col-span-1">
-                        <label htmlFor="manufacturer" className="block font-bold text-sm text-gray-700 mb-1">
-                          Manufacturer or Packer Name
-                        </label>
-                        <input
-                          type="text"
-                          id="manufacturer"
-                          value={manufacturer}
-                          onChange={(e) => setManufacturer(e.target.value)}
-                          className="mt-1 block w-full border border-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"
-                        />
-                      </div>
+                    
                     </div>
+                  )}
 
-                    <div className="mt-6 flex justify-between">
-                      <Link 
-                        href={`/store-manage/inventory/${sellerid}/add`}
-                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-gray-700 border-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Back
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={handleSaveAndNext}
-                        className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-blue-700 border-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        Save and Next
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                  <div className="mt-6 flex justify-between">
+                    <Link 
+                      href={`/store-manage/inventory/${sellerid}/add`}
+                      className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-gray-700 border-gray-900 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Back
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSaveAndNext}
+                      className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-blue-700 border-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Save and Next
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
