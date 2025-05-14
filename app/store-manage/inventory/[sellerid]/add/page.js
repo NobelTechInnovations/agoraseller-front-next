@@ -2,14 +2,16 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import axiosInstance from '../../../../utils/axios';
+import { getSession } from 'next-auth/react';
 
 const AddProduct = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryPath, setCategoryPath] = useState(['All categories']);
+  const [categoryPathIds, setCategoryPathIds] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -17,19 +19,12 @@ const AddProduct = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [currentCategories, setCurrentCategories] = useState([]);
   const fileInputRef = useRef(null);
   const router = useRouter();
   const params = useParams();
   const sellerId = params.sellerid;
-  const [currentCategories, setCurrentCategories] = useState([
-    { name: 'Body care & Health', hasChildren: true },
-    { name: 'Food', hasChildren: true },
-    { name: 'Fashion & accessories', hasChildren: true },
-    { name: 'Homeware & furniture', hasChildren: true },
-    { name: 'Media', hasChildren: true },
-    { name: 'Sex toy', hasChildren: true },
-  ]);
-
   const MAX_IMAGES = 7;
 
   // Initialize S3 client
@@ -40,29 +35,51 @@ const AddProduct = () => {
       secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_KEY,
     },
   });
-  // Sample child categories - in a real app, these would come from an API
-  const childCategories = {
-    'Body care & Health': [
-      { name: 'Personal Care', hasChildren: true },
-      { name: 'Health Care', hasChildren: true },
-      { name: 'Beauty Products', hasChildren: true },
-    ],
-    'Food': [
-      { name: 'Snacks', hasChildren: true },
-      { name: 'Beverages', hasChildren: true },
-      { name: 'Packaged Foods', hasChildren: true },
-    ],
-    'Personal Care': [
-      { name: 'Makeup', hasChildren: true },
-      { name: 'Skincare', hasChildren: true },
-      { name: 'Hair Care', hasChildren: false },
-    ],
-    'Makeup': [
-      { name: 'Lipstick', hasChildren: false },
-      { name: 'Foundation', hasChildren: false },
-      { name: 'Eyeshadow', hasChildren: false },
-    ],
+
+  // Fetch master categories
+  const fetchMasterCategories = async () => {
+    setIsLoadingCategories(true);
+    try {
+      const session = await getSession();
+      const response = await axiosInstance.get('/v1/seller/category',{
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+      if (response.data.success) {
+        setCurrentCategories(response.data.data.categories);
+      }
+    } catch (error) {
+      console.error('Error fetching master categories:', error);
+      setUploadError('Failed to load categories. Please try again.');
+    } finally {
+      setIsLoadingCategories(false);
+    }
   };
+
+  // Fetch child categories
+  const fetchChildCategories = async (parentId) => {
+    setIsLoadingCategories(true);
+    try {
+      const response = await axiosInstance.get(`/v1/seller/category/${parentId}/tree`);
+      if (response.data.success) {
+        setCurrentCategories(response.data.data.categories);
+      }
+    } catch (error) {
+      console.error('Error fetching child categories:', error);
+      setUploadError('Failed to load subcategories. Please try again.');
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  // Load initial categories on component mount
+  useEffect(() => {
+    fetchMasterCategories();
+  }, []);
+
+  // Sample child categories - Remove this as we'll use API data
+  const childCategories = {};
 
   const uploadToS3 = async (file) => {
     try {
@@ -98,34 +115,33 @@ const AddProduct = () => {
     }
   };
 
-  const handleNextClick = (category) => {
-    if (childCategories[category.name]) {
+  const handleNextClick = async (category) => {
+    if (category.hasChildren) {
       setCategoryPath([...categoryPath, category.name]);
-      setCurrentCategories(childCategories[category.name]);
+      setCategoryPathIds([...categoryPathIds, category._id]);
+      await fetchChildCategories(category._id);
     } else {
       // This is an end category
       setSelectedCategory(category);
     }
   };
 
-  const handleBackClick = () => {
+  const handleBackClick = async () => {
     if (categoryPath.length > 1) {
       const newPath = [...categoryPath];
+      const newPathIds = [...categoryPathIds];
       newPath.pop();
+      newPathIds.pop();
       setCategoryPath(newPath);
+      setCategoryPathIds(newPathIds);
       
-      // Reset to main categories if we're going back to root
+      // If we're going back to root, fetch master categories
       if (newPath.length === 1) {
-        setCurrentCategories([
-          { name: 'Body care & Health', hasChildren: true },
-          { name: 'Food', hasChildren: true },
-          { name: 'Fashion & accessories', hasChildren: true },
-          { name: 'Homeware & furniture', hasChildren: true },
-          { name: 'Media', hasChildren: true },
-          { name: 'Sex toy', hasChildren: true },
-        ]);
+        await fetchMasterCategories();
       } else {
-        setCurrentCategories(childCategories[newPath[newPath.length - 1]] || []);
+        // Fetch the categories of the parent
+        const parentId = newPathIds[newPathIds.length - 1];
+        await fetchChildCategories(parentId);
       }
     }
   };
@@ -371,37 +387,54 @@ const AddProduct = () => {
                                   type="button"
                                   onClick={handleBackClick}
                                   className="text-sm text-blue-600 hover:text-blue-800"
+                                  disabled={isLoadingCategories}
                                 >
                                   Back
                                 </button>
                               )}
                             </div>
                             <div className="divide-y divide-gray-200">
-                              {currentCategories.map((category, index) => (
-                                <div 
-                                  key={index}
-                                  className="flex items-center justify-between py-3 px-4 hover:bg-gray-50"
-                                >
-                                  <span className="text-sm text-gray-700">{category.name}</span>
-                                  {category.hasChildren ? (
-                                    <button 
-                                      type="button"
-                                      className="text-sm text-gray-500 hover:text-blue-600"
-                                      onClick={() => handleNextClick(category)}
-                                    >
-                                      Next
-                                    </button>
-                                  ) : (
-                                    <button 
-                                      type="button"
-                                      className="text-sm text-blue-600 hover:text-blue-800"
-                                      onClick={() => handleNextClick(category)}
-                                    >
-                                      Select
-                                    </button>
-                                  )}
+                              {isLoadingCategories ? (
+                                <div className="py-8 flex justify-center items-center">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                                 </div>
-                              ))}
+                              ) : currentCategories.length === 0 ? (
+                                <div className="py-8 text-center text-gray-500">
+                                  No categories found
+                                </div>
+                              ) : (
+                                currentCategories.map((category, index) => (
+                                  <div 
+                                    key={category._id}
+                                    className={`flex items-center justify-between py-3 px-4 hover:bg-gray-50 ${selectedCategory?._id === category._id ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <span className={`text-sm font-semibold hover:underline ${selectedCategory?._id === category._id ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+                                        {category.name}
+                                      </span>
+                                      {selectedCategory?._id === category._id && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    <button 
+                                      type="button"
+                                      className={`text-sm hover:underline ${
+                                        selectedCategory?._id === category._id 
+                                          ? 'text-blue-600 font-medium'
+                                          : category.hasChildren 
+                                            ? 'text-gray-500 hover:text-blue-600' 
+                                            : 'text-blue-600 hover:text-blue-800'
+                                      }`}
+                                      onClick={() => handleNextClick(category)}
+                                      disabled={isLoadingCategories}
+                                    >
+                                      {category.hasChildren ? 'Next' : selectedCategory?._id === category._id ? 'Selected' : 'Select'}
+                                    </button>
+                                  </div>
+                                ))
+                              )}
                             </div>
                           </div>
                         </div>
