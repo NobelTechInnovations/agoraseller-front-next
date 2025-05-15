@@ -45,7 +45,7 @@ export default function Home() {
       name: "Vikram Singh",
       business: "Electronics",
       image: "https://static-00.iconduck.com/assets.00/person-icon-512x483-d7q8hqj4.png",
-      text: "The reach that Agora provides is incredible. I'm getting orders from places I never imagined I could sell to.",
+      text: "The reach that Agora provides is incredible. I&apos;m getting orders from places I never imagined I could sell to.",
     },
   ];
 
@@ -181,7 +181,7 @@ export default function Home() {
                   Become a Seller on <span className="text-primary">Agora Market</span> and reach 50 Crore+ customers
                 </h1>
                 <p className="text-lg text-gray-600">
-                  Join India's fastest growing e-commerce platform and transform your business today.
+                  Join India&apos;s fastest growing e-commerce platform and transform your business today.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
@@ -354,7 +354,7 @@ export default function Home() {
             <div className="mt-16 text-center">
               <Link
                 href="/seller/register"
-                className="inline-block bg-primary text-white px-8 py-3 rounded-md hover:bg-[#5400a3] transition-colors font-medium text-lg"
+                className="inline-block bg-primary text-white px-8 py-3 rounded-md hover:bg-primary-dark transition-colors font-medium text-lg"
               >
                 Start Selling Today
               </Link>
@@ -524,7 +524,7 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-bold mb-4">AgoraSeller Hub</h3>
               <p className="text-gray-400 mb-4">
-                Your gateway to online selling success in India's fastest growing marketplace.
+                Your gateway to online selling success in India&apos;s fastest growing marketplace.
               </p>
             </div>
             <div>
@@ -632,7 +632,7 @@ export default function Home() {
                     />
                     <button
                       className={`absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 ${
-                        loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-primary hover:bg-[#5400a3]' : 'bg-gray-400'
+                        loading ? 'bg-gray-400' : isValidPhone(phoneNumber) ? 'bg-primary hover:bg-primary-dark' : 'bg-gray-400'
                       } text-white rounded-md font-medium transition-colors text-sm`}
                       onClick={handleSendOTP}
                       disabled={!isValidPhone(phoneNumber) || loading || otpSent}
@@ -655,7 +655,7 @@ export default function Home() {
                         onChange={(e) => setOtp(e.target.value)}
                       />
                       <button
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary text-sm font-medium hover:text-[#5400a3]"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary text-sm font-medium hover:text-primary-dark"
                         onClick={() => {
                           setOtp("");
                           setOtpSent(false);
@@ -685,7 +685,7 @@ export default function Home() {
 
                 <button
                   className={`w-full p-3 ${
-                    otpSent && otp ? 'bg-primary hover:bg-[#5400a3]' : 'bg-gray-400'
+                    otpSent && otp ? 'bg-primary hover:bg-primary-dark' : 'bg-gray-400'
                   } text-white rounded-md font-medium transition-colors`}
                   onClick={handleContinue}
                   disabled={!otpSent || !otp || verifying}
