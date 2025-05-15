@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import axiosInstance from '../../utils/axios';
+import { getSession } from 'next-auth/react';
 
 export default function ReturnsPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -10,6 +12,42 @@ export default function ReturnsPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPerformance, setSelectedPerformance] = useState('all');
   const [sortBy, setSortBy] = useState('most-recent');
+  const [returnStats, setReturnStats] = useState({
+    summary: {
+      totalDelivered: 0,
+      totalReturned: 0,
+      totalRTO: 0,
+      returnRate: 0,
+      rtoRate: 0
+    },
+    productPerformance: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReturnStatistics = async () => {
+      try {
+        setLoading(true);
+        const session = await getSession();
+        const response = await axiosInstance.get('/v1/seller/return/statistics',
+          {
+            headers: {
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          }
+        );
+        if (response.data.success) {
+          setReturnStats(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching return statistics:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReturnStatistics();
+  }, []);
 
   const products = [
     {
@@ -137,20 +175,28 @@ export default function ReturnsPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="text-sm text-gray-600 mb-2">Customer Return Rate</h3>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold">40.00%</span>
-              <span className="text-red-500 text-sm">↑ 40.00%</span>
+              <span className="text-2xl font-semibold">{loading ? "..." : `${returnStats.summary.returnRate.toFixed(2)}%`}</span>
+              <span className="text-red-500 text-sm">↑ {loading ? "..." : `${returnStats.summary.returnRate.toFixed(2)}%`}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">2 orders returned out of 5 delivered</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {loading 
+                ? "Loading..." 
+                : `${returnStats.summary.totalReturned} orders returned out of ${returnStats.summary.totalDelivered} delivered`}
+            </p>
           </div>
 
           {/* Courier Return Rate */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h3 className="text-sm text-gray-600 mb-2">Courier Return (RTO) Rate</h3>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold">0.00%</span>
-              <span className="text-gray-500 text-sm">0.00%</span>
+              <span className="text-2xl font-semibold">{loading ? "..." : `${returnStats.summary.rtoRate.toFixed(2)}%`}</span>
+              <span className="text-gray-500 text-sm">{loading ? "..." : `${returnStats.summary.rtoRate.toFixed(2)}%`}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">0 RTO orders out of 9 dispatched</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {loading 
+                ? "Loading..." 
+                : `${returnStats.summary.totalRTO} RTO orders out of ${returnStats.summary.totalDelivered + returnStats.summary.totalRTO} dispatched`}
+            </p>
           </div>
         </div>
 
@@ -165,7 +211,7 @@ export default function ReturnsPage() {
                 <span className="text-xl font-semibold text-red-500">100.00%</span>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Meesho Price</p>
+                <p className="text-xs text-gray-500 mb-1">AgooraPrice</p>
                 <span className="text-xl font-semibold text-green-500">0.00%</span>
               </div>
             </div>
@@ -246,7 +292,68 @@ export default function ReturnsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                    Loading product performance data...
+                  </td>
+                </tr>
+              ) : returnStats.productPerformance && returnStats.productPerformance.length > 0 ? (
+                returnStats.productPerformance.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                          <img src={product.image} alt={product.name} className="h-full w-full object-cover object-center" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                          <div className="text-sm text-gray-500">Product ID: {product.id}</div>
+                          <div className="text-sm text-gray-500">Category: {product.category}</div>
+                          {product.dualPricing && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              Dual Pricing Enabled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-sm text-gray-900">{product.ordersDelivered}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm text-gray-900">{product.returnRate}</span>
+                        <span className="text-xs text-gray-500">{product.returns} Returns</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button className="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                        View Details
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {product.returns > 0 ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-red-500 text-sm font-medium">{product.returnRate}</span>
+                          <span className="text-xs text-gray-500">Returns increased compared to the last month</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                    No product performance data available
+                  </td>
+                </tr>
+              )}
+
+              {/* Fallback to static products if API returns no product performance data */}
+              {!loading && (!returnStats.productPerformance || returnStats.productPerformance.length === 0) && products.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
