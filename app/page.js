@@ -55,7 +55,7 @@ export default function Home() {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [testimonials.length]);
 
   // Validate phone number (10-15 digits)
   const isValidPhone = (phone) => {
@@ -394,7 +394,7 @@ export default function Home() {
                       ))}
                     </div>
                     <blockquote className="text-xl md:text-2xl text-gray-700 italic mb-6">
-                      "{testimonials[currentTestimonial].text}"
+                      &ldquo;{testimonials[currentTestimonial].text}&rdquo;
                     </blockquote>
                     <div>
                       <p className="text-lg font-bold text-gray-900">{testimonials[currentTestimonial].name}</p>
