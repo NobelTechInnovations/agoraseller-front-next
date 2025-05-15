@@ -1,12 +1,66 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-
+import axiosInstance from '../../utils/axios';
+import { format } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getSession } from 'next-auth/react';
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState('daily');
   const [timePeriod, setTimePeriod] = useState('last-month');
+  const [paymentData, setPaymentData] = useState({
+    payments_to_date: 0,
+    total_outstanding_payment: 0,
+    next_payment: {
+      amount: 0,
+      date: new Date(),
+    },
+    last_payment: {
+      amount: 0,
+    },
+    payment_trends: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPaymentSummary = async () => {
+      try {
+        setLoading(true);
+        const session = await getSession();
+        const response = await axiosInstance.get('/v1/seller/payment/summary',
+          {
+            headers: {
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          }
+        );
+        if (response.data.success) {
+          setPaymentData(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching payment summary:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPaymentSummary();
+  }, []);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'dd MMM');
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
 
   return (
     <div className="p-3 max-w-7xl mx-auto">
@@ -38,9 +92,11 @@ export default function PaymentsPage() {
             </div>
             <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button>
           </div>
-          <p className="text-2xl font-semibold mb-3">₹0</p>
+          <p className="text-2xl font-semibold mb-3">
+            {loading ? '...' : formatCurrency(paymentData.payments_to_date)}
+          </p>
           <div className="flex items-center text-sm text-gray-600">
-            <span>Last Payment: ₹0</span>
+            <span>Last Payment: {loading ? '...' : formatCurrency(paymentData.last_payment.amount)}</span>
             <Icon icon="solar:alt-arrow-right-linear" className="mx-2" width="16" height="16" />
           </div>
         </div>
@@ -54,11 +110,13 @@ export default function PaymentsPage() {
             </div>
             <Link href="/store-manage/payments/due-payments" className="text-blue-600 text-sm hover:text-blue-700">View Details</Link>
           </div>
-          <p className="text-2xl font-semibold mb-3">₹5,577</p>
+          <p className="text-2xl font-semibold mb-3">
+            {loading ? '...' : formatCurrency(paymentData.total_outstanding_payment)}
+          </p>
           <div className="flex items-center text-sm text-gray-600">
-            <span>Next Payment: ₹887</span>
+            <span>Next Payment: {loading ? '...' : formatCurrency(paymentData.next_payment.amount)}</span>
             <span className="mx-2">•</span>
-            <span className="text-gray-500">Due on 15 May</span>
+            <span className="text-gray-500">Due on {loading ? '...' : formatDate(paymentData.next_payment.date)}</span>
             <Icon icon="solar:alt-arrow-right-linear" className="mx-2" width="16" height="16" />
           </div>
         </div>
@@ -103,13 +161,44 @@ export default function PaymentsPage() {
         </div>
 
         {/* Chart Area */}
-        <div className="h-64 mb-2 flex items-center justify-center bg-gray-50 rounded-lg">
-          <div className="text-center">
-            <p className="text-gray-400 text-sm">Payment trend visualization will appear here</p>
-            <p className="text-gray-500 text-xs mt-1">Showing data from Apr 21 - Apr 27</p>
-          </div>
+        <div className="h-64 mb-2">
+          {loading ? (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-gray-400 text-sm">Loading payment data...</p>
+            </div>
+          ) : paymentData.payment_trends.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={paymentData.payment_trends.map(item => ({
+                  date: item._id,
+                  amount: item.total
+                }))}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value) => [`₹${value}`, 'Amount']}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Line type="monotone" dataKey="amount" stroke="#2563eb" activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <p className="text-gray-400 text-sm">No payment data available</p>
+                <p className="text-gray-500 text-xs mt-1">Payment trends will appear here once you have payments</p>
+              </div>
+            </div>
+          )}
         </div>
-        <p className="text-xs text-gray-500">The graph shows daily view of your 30 days payments</p>
+        <p className="text-xs text-gray-500">
+          {activeTab === 'daily' ? 'The graph shows daily view of your payment trends' : 
+           activeTab === 'weekly' ? 'The graph shows weekly view of your payment trends' : 
+           'The graph shows monthly view of your payment trends'}
+        </p>
       </div>
 
       {/* Additional Information Section */}
