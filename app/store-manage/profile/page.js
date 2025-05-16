@@ -940,7 +940,7 @@ export default function ProfilePage() {
                         <div className="flex items-start">
                           <Icon icon="solar:info-circle-linear" className="text-yellow-600 mt-0.5 mr-2" width="20" height="20" />
                           <div>
-                            <h4 className="text-sm font-medium text-yellow-800 mb-1">Business Details Can't Be Changed</h4>
+                            <h4 className="text-sm font-medium text-yellow-800 mb-1">Business Details Can&apos;t Be Changed</h4>
                             <p className="text-sm text-yellow-700">
                               To update your business details, please contact our support team by raising a ticket or sending an email to support@agoraseller.com
                             </p>
@@ -989,8 +989,8 @@ export default function ProfilePage() {
                     <div className="flex justify-between">
                       <div>
                         <h4 className="text-md font-medium mb-1">Main Business Address</h4>
-                        <p className="text-sm text-gray-600">{profileData.business_details?.business_address || '118, Chetak Marg, Bank Colony, Gajsinghpur'}</p>
-                        <p className="text-sm text-gray-600">Jaipur, Rajasthan {profileData.business_details?.pincode || '302019'}</p>
+                        <p className="text-sm text-gray-600">{profileData.business_details?.business_address ?? ''}</p>
+                        <p className="text-sm text-gray-600">Jaipur, Rajasthan {profileData.business_details?.pincode || ''}</p>
                       </div>
                       <div className="flex flex-col space-y-2">
                         <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full text-center">Primary</span>
@@ -998,7 +998,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex justify-between items-center mt-4">
                       <div className="text-sm text-gray-500">
-                        <span>Contact: {profileData.personal?.phone || '9876543210'}</span>
+                        <span>Contact: {profileData.personal?.phone || ''}</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Icon icon="solar:info-circle-linear" className="mr-1" width="14" height="14" />
