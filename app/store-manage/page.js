@@ -1,10 +1,122 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axiosInstance from '../utils/axios';
+import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { getSession } from 'next-auth/react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function StoreDashboard() {
   const [activeTab, setActiveTab] = useState('daily');
+  const [dashboardData, setDashboardData] = useState({
+    pendingOrders: 0,
+    totalOrders: 0,
+    shippedOrders: 0,
+    returnOrders: 0,
+    totalRevenue: 0,
+    totalShippingCharges: 0,
+    dateRange: {
+      startDate: null,
+      endDate: null
+    },
+    chartData: {
+      labels: [],
+      series: {
+        orderCount: [],
+        revenue: [],
+        returns: [],
+        shipping: []
+      },
+      rawData: []
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    fetchChartData(activeTab);
+  }, [activeTab]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Get current month's start date
+      const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      
+      const session = await getSession();
+      const response = await axiosInstance.get(`/v1/seller/dashboard?startDate=${currentMonthStart}`, {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      });
+      
+      if (response.data && response.data.success && response.data.data) {
+        setDashboardData(response.data.data);
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data');
+      setLoading(false);
+    }
+  };
+
+  const fetchChartData = async (period) => {
+    try {
+      setLoading(true);
+      let startDate;
+      
+      if (period === 'daily') {
+        startDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+      } else if (period === 'weekly') {
+        startDate = format(startOfWeek(subDays(new Date(), 28)), 'yyyy-MM-dd');
+      } else if (period === 'monthly') {
+        startDate = format(startOfMonth(subDays(new Date(), 90)), 'yyyy-MM-dd');
+      }
+
+      const session = await getSession();
+      const response = await axiosInstance.get(`/v1/seller/dashboard?startDate=${startDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+        }
+      );
+      
+      if (response.data && response.data.success && response.data.data) {
+        setDashboardData(response.data.data);
+      } else {
+        throw new Error('Invalid chart data response format');
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error(`Error fetching ${period} chart data:`, err);
+      setError(`Failed to load ${period} chart data`);
+      setLoading(false);
+    }
+  };
+
+  // Format the chart data for display
+  const getFormattedChartData = () => {
+    if (!dashboardData.chartData || !dashboardData.chartData.labels) return [];
+    
+    return dashboardData.chartData.labels.map((label, index) => ({
+      date: label,
+      orders: dashboardData.chartData.series.orderCount[index] || 0,
+      revenue: dashboardData.chartData.series.revenue[index] || 0,
+      returns: dashboardData.chartData.series.returns[index] || 0,
+      shipping: dashboardData.chartData.series.shipping[index] || 0,
+    }));
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -24,46 +136,54 @@ export default function StoreDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Pending Orders</p>
-              <p className="text-xl font-semibold mt-0.5">0</p>
+              <p className="text-xl font-semibold mt-0.5">
+                {loading ? '...' : dashboardData.pendingOrders}
+              </p>
             </div>
           </div>
         </Link>
 
-        {/* Download Labels */}
-        <Link href="/store-manage/orders/labels" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        {/* Shipped Orders */}
+        <Link href="/store-manage/orders" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-blue-600 text-lg">🏷️</span>
+              <span className="text-blue-600 text-lg">🚚</span>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Download Labels</p>
-              <p className="text-xl font-semibold mt-0.5">0</p>
+              <p className="text-sm text-gray-600">Shipped Orders</p>
+              <p className="text-xl font-semibold mt-0.5">
+                {loading ? '...' : dashboardData.shippedOrders}
+              </p>
             </div>
           </div>
         </Link>
 
-        {/* Out of Stock */}
-        <Link href="/store-manage/inventory/out-of-stock" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        {/* Return Orders */}
+        <Link href="/store-manage/returns" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-red-600 text-lg">📉</span>
+              <span className="text-red-600 text-lg">↩️</span>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Out of Stock</p>
-              <p className="text-xl font-semibold mt-0.5">0</p>
+              <p className="text-sm text-gray-600">Return Orders</p>
+              <p className="text-xl font-semibold mt-0.5">
+                {loading ? '...' : dashboardData.returnOrders}
+              </p>
             </div>
           </div>
         </Link>
 
-        {/* Low Stock */}
-        <Link href="/store-manage/inventory/low-stock" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        {/* Total Revenue */}
+        <Link href="/store-manage/payments" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-orange-600 text-lg">📊</span>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+              <span className="text-green-600 text-lg">💰</span>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Low Stock</p>
-              <p className="text-xl font-semibold mt-0.5">0</p>
+              <p className="text-sm text-gray-600">Total Revenue</p>
+              <p className="text-xl font-semibold mt-0.5">
+                {loading ? '...' : `₹${dashboardData.totalRevenue}`}
+              </p>
             </div>
           </div>
         </Link>
@@ -109,43 +229,91 @@ export default function StoreDashboard() {
           </div>
         </div>
 
-        {/* Chart Placeholder */}
-        <div className="bg-gray-50 rounded-lg p-6 h-64 mb-6 flex items-center justify-center border border-gray-200">
-          <div className="text-center">
-            <p className="text-gray-400 text-sm">Chart visualization will go here</p>
-            <p className="text-gray-500 text-xs mt-1">Showing data from Apr 21 - Apr 27</p>
-          </div>
+        {/* Chart Section */}
+        <div className="h-64 mb-4">
+          {loading ? (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-gray-400 text-sm">Loading chart data...</p>
+            </div>
+          ) : error ? (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-red-500">{error}</p>
+            </div>
+          ) : dashboardData?.chartData?.labels?.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={getFormattedChartData()}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'revenue' || name === 'shipping') {
+                      return [`₹${value}`, name.charAt(0).toUpperCase() + name.slice(1)];
+                    }
+                    return [value, name.charAt(0).toUpperCase() + name.slice(1)];
+                  }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="orders" stroke="#2563eb" activeDot={{ r: 8 }} name="Orders" />
+                <Line type="monotone" dataKey="revenue" stroke="#16a34a" name="Revenue" />
+                <Line type="monotone" dataKey="returns" stroke="#dc2626" name="Returns" />
+                <Line type="monotone" dataKey="shipping" stroke="#f97316" name="Shipping" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <p className="text-gray-400 text-sm">No data available for the selected period</p>
+                <p className="text-gray-500 text-xs mt-1">Business data will appear here once you have orders</p>
+              </div>
+            </div>
+          )}
         </div>
+        <p className="text-xs text-gray-500 mb-4">
+          {activeTab === 'daily' ? 'The graph shows daily view of your business trends' : 
+          activeTab === 'weekly' ? 'The graph shows weekly view of your business trends' : 
+          'The graph shows monthly view of your business trends'}
+        </p>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-600">Views <span className="text-gray-400">(26 Apr)</span></p>
+              <p className="text-sm text-gray-600">Total Orders</p>
             </div>
-            <p className="text-xl font-semibold">27</p>
+            <p className="text-xl font-semibold">
+              {loading ? '...' : dashboardData.totalOrders}
+            </p>
           </div>
           
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-600">Orders <span className="text-gray-400">(26 Apr)</span></p>
-              <span className="text-red-500 text-xs">↓ 100.00%</span>
+              <p className="text-sm text-gray-600">Revenue</p>
             </div>
-            <p className="text-xl font-semibold">0</p>
+            <p className="text-xl font-semibold">
+              {loading ? '...' : `₹${dashboardData.totalRevenue}`}
+            </p>
           </div>
           
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-600">In Stock Listings</p>
+              <p className="text-sm text-gray-600">Shipping Charges</p>
             </div>
-            <p className="text-xl font-semibold">2</p>
+            <p className="text-xl font-semibold">
+              {loading ? '...' : `₹${dashboardData.totalShippingCharges}`}
+            </p>
           </div>
           
           <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-600">Outstanding Payments</p>
+              <p className="text-sm text-gray-600">Return Orders</p>
             </div>
-            <p className="text-xl font-semibold">₹0</p>
+            <p className="text-xl font-semibold">
+              {loading ? '...' : dashboardData.returnOrders}
+            </p>
           </div>
         </div>
 

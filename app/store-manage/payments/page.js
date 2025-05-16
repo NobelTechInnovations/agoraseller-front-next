@@ -90,7 +90,7 @@ export default function PaymentsPage() {
               <h2 className="text-sm text-gray-600">Payments to Date</h2>
               <Icon icon="solar:info-circle-linear" className="text-gray-400" width="16" height="16" />
             </div>
-            <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button>
+            {/* <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button> */}
           </div>
           <p className="text-2xl font-semibold mb-3">
             {loading ? '...' : formatCurrency(paymentData.payments_to_date)}
@@ -210,7 +210,7 @@ export default function PaymentsPage() {
               <h2 className="text-sm font-medium text-gray-800">Compensation & Recoveries</h2>
               <Icon icon="solar:info-circle-linear" className="text-gray-400" width="16" height="16" />
             </div>
-            <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button>
+            {/* <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button> */}
           </div>
           <div className="space-y-3">
             <div className="flex justify-between items-center text-sm">
@@ -237,7 +237,7 @@ export default function PaymentsPage() {
               <h2 className="text-sm font-medium text-gray-800">Ads Cost</h2>
               <Icon icon="solar:info-circle-linear" className="text-gray-400" width="16" height="16" />
             </div>
-            <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button>
+            {/* <button className="text-blue-600 text-sm hover:text-blue-700">View Details</button> */}
           </div>
           <div className="text-center py-4">
             <Icon icon="solar:chart-2-linear" className="mx-auto mb-2 text-blue-600" width="48" height="48" />
