@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axiosInstance from '../../../utils/axios';
+import { getSession } from 'next-auth/react';
 
 const RaiseTicketPage = () => {
   const router = useRouter();
@@ -12,6 +14,7 @@ const RaiseTicketPage = () => {
   const [message, setMessage] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Query types and their sub-options
   const queryTypes = {
@@ -128,24 +131,50 @@ const RaiseTicketPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
-    // Here you would typically submit the ticket data to your backend
-    console.log('Submitting ticket:', {
-      queryType,
-      subQueryType,
-      orderId,
-      productId,
-      message,
-      phone
-    });
+    setIsSubmitting(true);
 
-    // Show success message or redirect
-    alert('Ticket submitted successfully!');
-    router.push('/store-manage/support');
+    try {
+      const session = await getSession();
+      
+      const payload = {
+        subject: queryTypes[queryType].label,
+        relatedConcern: subQueryType,
+        message: message,
+        phoneNumber: phone || undefined
+      };
+
+      // Add optional fields based on query type
+      if (queryType === 'order' && orderId) {
+        payload.orderId = orderId;
+      }
+      
+      if (queryType === 'product' && productId) {
+        payload.productId = productId;
+      }
+
+      const response = await axiosInstance.post('/v1/seller/support/query', payload, {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (response.data.success) {
+        alert('Ticket submitted successfully!');
+        router.push('/store-manage/support');
+      } else {
+        alert('Failed to submit ticket. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting ticket:', error);
+      alert('An error occurred while submitting your ticket. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -280,9 +309,10 @@ const RaiseTicketPage = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  disabled={isSubmitting}
+                  className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
-                  Submit Ticket
+                  {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
                 </button>
               </div>
             </form>

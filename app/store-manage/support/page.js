@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "../../admin/components/ui/card";
 import { Button } from "../../admin/components/ui/button";
 import {
@@ -13,25 +14,51 @@ import {
 import Link from "next/link";
 import { Icon } from '@iconify/react';
 import { Eye, Search } from "lucide-react";
+import axiosInstance from "../../utils/axios";
+import { getSession } from "next-auth/react";
 
 export default function SupportPage() {
-  // Dummy data for query history
-  const queryHistory = [
-    {
-      id: 1,
-      date: "2024-03-15",
-      category: "Order",
-      subject: "Order Cancellation Request",
-      status: "Resolved",
-    },
-    {
-      id: 2,
-      date: "2024-03-14",
-      category: "Return",
-      subject: "Product Return Query",
-      status: "Pending",
-    },
-  ];
+  const [queries, setQueries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchQueries = async () => {
+      try {
+        setLoading(true);
+        const session = await getSession();
+        
+        const response = await axiosInstance.get('/v1/seller/support/queries', {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+
+        if (response.data.success) {
+          setQueries(response.data.data.queries);
+        } else {
+          setError('Failed to fetch queries');
+        }
+      } catch (error) {
+        console.error('Error fetching queries:', error);
+        setError('An error occurred while fetching queries');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQueries();
+  }, []);
+
+  // Format date function
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -139,43 +166,78 @@ export default function SupportPage() {
           <h2 className="text-lg font-semibold text-gray-800 flex items-center">
             <span className="mr-2">📝</span> Previous Queries
           </h2>
+          <Link href="/store-manage/support/ticket">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              Raise New Ticket
+            </Button>
+          </Link>
         </div>
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {queryHistory.map((query) => (
-                <TableRow key={query.id}>
-                  <TableCell>{query.date}</TableCell>
-                  <TableCell>{query.category}</TableCell>
-                  <TableCell>{query.subject}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      query.status === "Resolved" 
-                        ? "bg-green-100 text-green-800" 
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {query.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="hover:bg-gray-100">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="text-center py-4">Loading...</div>
+          ) : error ? (
+            <div className="text-center py-4 text-red-500">{error}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Concern</TableHead>
+                  <TableHead>Reference ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {queries.length > 0 ? (
+                  queries.map((query) => (
+                    <TableRow key={query._id}>
+                      <TableCell>{formatDate(query.createdAt)}</TableCell>
+                      <TableCell>{query.subject}</TableCell>
+                      <TableCell>{query.relatedConcern}</TableCell>
+                      <TableCell>
+                        {query.orderId ? (
+                          <span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
+                            <span className="font-medium mr-1">Order:</span> {query.orderId}
+                          </span>
+                        ) : query.productId ? (
+                          <span className="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                            <span className="font-medium mr-1">Product:</span> {query.productId}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          query.status === "closed" 
+                            ? "bg-green-100 text-green-800" 
+                            : query.status === "in-progress"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}>
+                          {query.status.charAt(0).toUpperCase() + query.status.slice(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="hover:bg-gray-100">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      No queries found. <Link href="/store-manage/support/ticket" className="text-blue-600 hover:underline">Raise a new ticket</Link>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
     </div>

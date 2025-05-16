@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'return-report.xlsx';
+                a.download = 'agora-return-report.csv';
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'sales-report.xlsx';
+                a.download = 'agora-sales-report.xlsx';
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -231,10 +231,10 @@ export default function DashboardLayout({ children }) {
               <div className="flex items-center gap-4">
                 {/* Add Product Button */}
                 <Link
-                  href={`/store-manage/inventory/dfs468g/add`}
+                  href={`/store-manage/support/ticket`}
                   className="px-4 py-1 bg-primary text-white text-sm font-medium rounded-md hover:bg-primary-dark transition-colors flex items-center gap-2"
                 >
-                  Raise Ticket
+                  Need Help!
                 </Link>
 
                 {/* User Menu Dropdown */}
