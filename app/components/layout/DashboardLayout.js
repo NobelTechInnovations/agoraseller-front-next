@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './sidebar';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -9,6 +9,7 @@ import NProgress from 'nprogress';
 import RouteProgress from '../RouteProgress';
 import axiosInstance from '../../utils/axios';
 import { getSession } from 'next-auth/react';
+
 export default function DashboardLayout({ children }) {
 
   const router = useRouter();
@@ -16,6 +17,35 @@ export default function DashboardLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [storeId, setStoreId] = useState('');
+
+  useEffect(() => {
+    const fetchBusinessName = async () => {
+      try {
+        const session = await getSession();
+        if (session?.accessToken) {
+          const response = await axiosInstance.get('/v1/seller/accounts/profile', {
+            headers: {
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          });
+          
+          if (response.data.success && response.data.data.business_details) {
+            setBusinessName(response.data.data.business_details.business_name || '');
+            setOwnerName(response.data.data.personal.name || '');
+            setStoreId(String(response.data.data.personal.id).slice(-6).toUpperCase() || session.user?.phone);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching business name:', error);
+      }
+    };
+
+    fetchBusinessName();
+  }, []);
+  
   const handleLogout = () => {
     // Remove auth token from localStorage
     localStorage.removeItem('sellerAuth');
@@ -126,9 +156,8 @@ export default function DashboardLayout({ children }) {
         {/* Store profile header */}
         <div className="p-4 flex items-center justify-between border-b border-gray-700">
           <div className="flex items-center gap-2">
-
             <div className="text-sm text-white">
-              <p className="font-bold">ByJaipuri Legacy</p>
+              <p className="font-bold">{businessName || 'Unknown'}</p>
             </div>
           </div>
           {/* Close button */}
@@ -163,8 +192,8 @@ export default function DashboardLayout({ children }) {
                   />
 
                   <div className="flex items-center gap-2 border border-gray-200 bg-gray-100 p-2 rounded-md">
-                    <h4 className="text-xs  font-semibold text-gray-800">By Jaipuri Legacy</h4>
-                    <span className="text-xs text-dark py-0.5 rounded-sm">| Jaipur</span>
+                    <h4 className="text-xs font-semibold text-gray-800">{businessName || 'Unknown'}</h4>
+                    {/* <span className="text-xs text-dark py-0.5 rounded-sm">| Jaipur</span> */}
                   </div>
                 </div>
               </div>
@@ -244,8 +273,8 @@ export default function DashboardLayout({ children }) {
                     className="flex items-center gap-2 text-gray-700 hover:text-gray-900 focus:outline-none"
                   >
                     <div className="flex flex-col items-end">
-                      <span className="text-sm font-medium">Store Admin</span>
-                      <span className="text-xs text-gray-500">ID: STORE123456</span>
+                      <span className="text-sm font-medium">{ownerName || 'Store Admin'}</span>
+                      <span className="text-xs text-gray-500">ID: {storeId || ''}</span>
                     </div>
                     <svg
                       className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
