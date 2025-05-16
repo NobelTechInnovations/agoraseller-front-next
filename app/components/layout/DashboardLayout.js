@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import NProgress from 'nprogress';
 import RouteProgress from '../RouteProgress';
-
+import axiosInstance from '../../utils/axios';
+import { getSession } from 'next-auth/react';
 export default function DashboardLayout({ children }) {
 
   const router = useRouter();
@@ -41,8 +42,69 @@ export default function DashboardLayout({ children }) {
     {
       name: 'Reports',
       items: [
-        { name: 'Return Report', href: '/store-manage/reports/returns' },
-        { name: 'Sale Revenue', href: '/store-manage/reports/revenue' }
+        { 
+          name: 'Return Report', 
+          href: '/store-manage/reports/returns',
+          onClick: () => {
+            const downloadReturnReport = async () => {
+              try {
+                const session = await getSession();
+                const response = await axiosInstance.get('/v1/seller/dashboard/returns-report',  {
+                  headers: {
+                    Authorization: `Bearer ${session?.accessToken}`,
+                  },
+                });
+                
+                const blob = new Blob([response.data], { 
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'return-report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              } catch (error) {
+                console.error('Error downloading return report:', error);
+              }
+            };
+            downloadReturnReport();
+          }
+        },
+        { 
+          name: 'Sale Revenue', 
+          href: '/store-manage/reports/revenue',
+          onClick: () => {
+            const downloadSalesReport = async () => {
+              try {
+                const session = await getSession();
+                const response = await axiosInstance.get('/v1/seller/dashboard/sales-report', {
+                  responseType: 'blob',
+                  headers: {
+                    Authorization: `Bearer ${session?.accessToken}`,
+                  },
+                });
+                
+                const blob = new Blob([response.data], { 
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'sales-report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              } catch (error) {
+                console.error('Error downloading sales report:', error);
+              }
+            };
+            downloadSalesReport();
+          }
+        }
       ]
     },
     {
@@ -146,6 +208,12 @@ export default function DashboardLayout({ children }) {
                             key={subIndex}
                             href={subItem.href}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={(e) => {
+                              if (subItem.onClick) {
+                                e.preventDefault();
+                                subItem.onClick();
+                              }
+                            }}
                           >
                             {subItem.name}
                           </Link>
