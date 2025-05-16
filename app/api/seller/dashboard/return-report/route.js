@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import axiosInstance from '@/app/utils/axios';
+import axiosInstance from '../../../../../utils/axios';
 
 export async function GET() {
   try {
