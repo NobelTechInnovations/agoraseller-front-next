@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import axiosInstance from '../../utils/axios';
 import { getSession } from 'next-auth/react';
+import S3Image from '../../components/S3Image';
 
 export default function ReturnsPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -14,9 +15,11 @@ export default function ReturnsPage() {
   const [sortBy, setSortBy] = useState('most-recent');
   const [returnStats, setReturnStats] = useState({
     summary: {
+      totalShipped: 0,
       totalDelivered: 0,
       totalReturned: 0,
       totalRTO: 0,
+      totalOrders: 0,
       returnRate: 0,
       rtoRate: 0
     },
@@ -49,49 +52,6 @@ export default function ReturnsPage() {
     fetchReturnStatistics();
   }, []);
 
-  const products = [
-    {
-      id: '533960497',
-      name: 'Blue Cotton Kurti',
-      image: 'https://assets.myntassets.com/w_412,q_60,dpr_2,fl_progressive/assets/images/24971794/2023/9/14/806bec13-9078-4d8a-8096-586583ef050b1694676454411KALINIWomenLimeGreenFloralEmbroideredRegularThreadWorkKurtiw1.jpg',
-      ordersDelivered: 2,
-      returns: 2,
-      returnRate: '100.00%',
-      category: 'Women',
-      dualPricing: true
-    },
-    {
-      id: '535960156',
-      name: 'Aagam Petite Women Dupatta Sets',
-      image: 'https://cdn.sareeka.com/image/cache/data2023/plain-cotton-designer-kurti-256633-1000x1375.jpg',
-      ordersDelivered: 1,
-      returns: 0,
-      returnRate: '0.00%',
-      category: 'Women',
-      dualPricing: true
-    },
-    {
-      id: '537340841',
-      name: 'Mocha Blossom Embroidered Suit Set',
-      image: 'https://mybudgetstore.in/cdn/shop/files/IMG_4471.jpg?v=1739511109',
-      ordersDelivered: 0,
-      returns: 0,
-      returnRate: '0.00%',
-      category: 'Women',
-      dualPricing: true
-    },
-    {
-      id: '534760497',
-      name: 'Casual Shirt & Wide-Leg Pant Set',
-      image: 'https://www.sujatra.com/cdn/shop/files/SN05AUG-0074copy_1024x1024.jpg?v=1691817425',
-      ordersDelivered: 1,
-      returns: 0,
-      returnRate: '0.00%',
-      category: 'Women',
-      dualPricing: true
-    }
-  ];
-  
   return (
     <div className="p-3 max-w-7xl mx-auto">
       {/* Header */}
@@ -195,7 +155,7 @@ export default function ReturnsPage() {
             <p className="text-xs text-gray-500 mt-1">
               {loading 
                 ? "Loading..." 
-                : `${returnStats.summary.totalRTO} RTO orders out of ${returnStats.summary.totalDelivered + returnStats.summary.totalRTO} dispatched`}
+                : `${returnStats.summary.totalRTO} RTO orders out of ${returnStats.summary.totalShipped} dispatched`}
             </p>
           </div>
         </div>
@@ -204,15 +164,11 @@ export default function ReturnsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Dual Pricing Stats */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-sm text-gray-600 mb-3">Dual Pricing - Customer Return Rate</h3>
+            <h3 className="text-sm text-gray-600 mb-3">Success Product Performance Rate</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Wrong/Defective Return Price</p>
-                <span className="text-xl font-semibold text-red-500">100.00%</span>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">AgooraPrice</p>
-                <span className="text-xl font-semibold text-green-500">0.00%</span>
+                <p className="text-xs text-gray-500 mb-1">  </p>
+                <span className="text-xl font-semibold text-green-500 ">{returnStats.summary.totalDelivered*100}%</span>
               </div>
             </div>
           </div>
@@ -285,6 +241,7 @@ export default function ReturnsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product Details</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Orders</th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Orders Delivered</th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Customer Return</th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
@@ -294,37 +251,44 @@ export default function ReturnsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
                     Loading product performance data...
                   </td>
                 </tr>
               ) : returnStats.productPerformance && returnStats.productPerformance.length > 0 ? (
                 returnStats.productPerformance.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                  <tr key={product.productId} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                          <img src={product.image} alt={product.name} className="h-full w-full object-cover object-center" />
+                          <S3Image
+                            src={product.image}
+                            alt={product.name}
+                            width={64}
+                            height={64}
+                            className="h-full w-full"
+                            objectFit="cover"
+                          />
+
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">Product ID: {product.id}</div>
-                          <div className="text-sm text-gray-500">Category: {product.category}</div>
-                          {product.dualPricing && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              Dual Pricing Enabled
-                            </span>
-                          )}
+                          <div className="text-sm text-gray-500">Product ID: {product.productId}</div>
+                          <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                          <div className="text-sm text-gray-500">Agora ID: {product.agora_product_id}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-sm text-gray-900">{product.ordersDelivered}</span>
+                      <span className="text-sm text-gray-900">{product.totalOrders}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-sm text-gray-900">{product.totalDelivered}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-sm text-gray-900">{product.returnRate}</span>
-                        <span className="text-xs text-gray-500">{product.returns} Returns</span>
+                        <span className="text-sm text-gray-900">{product.returnRate}%</span>
+                        <span className="text-xs text-gray-500">{product.totalReturned} Returns</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -333,9 +297,9 @@ export default function ReturnsPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {product.returns > 0 ? (
+                      {product.totalReturned > 0 ? (
                         <div className="flex flex-col items-center">
-                          <span className="text-red-500 text-sm font-medium">{product.returnRate}</span>
+                          <span className="text-red-500 text-sm font-medium">{product.returnRate}%</span>
                           <span className="text-xs text-gray-500">Returns increased compared to the last month</span>
                         </div>
                       ) : (
@@ -346,7 +310,7 @@ export default function ReturnsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
                     No product performance data available
                   </td>
                 </tr>
@@ -358,7 +322,16 @@ export default function ReturnsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                        <img src={product.image} alt={product.name} className="h-full w-full object-cover object-center" />
+                        <img 
+                          src={getS3ProxyUrl(product.image)}
+                          alt={product.name} 
+                          className="h-full w-full object-cover object-center"
+                          onError={(e) => {
+                            console.log('Image failed to load:', product.image);
+                            e.target.onerror = null;
+                            e.target.src = 'https://via.placeholder.com/150';
+                          }}
+                        />
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -371,6 +344,9 @@ export default function ReturnsPage() {
                         )}
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-sm text-gray-900">{product.totalOrders || "-"}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="text-sm text-gray-900">{product.ordersDelivered}</span>
