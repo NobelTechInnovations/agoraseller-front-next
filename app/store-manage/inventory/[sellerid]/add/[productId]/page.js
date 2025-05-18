@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,6 +10,9 @@ import { getSession } from 'next-auth/react';
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import Select from 'react-select';
+
+
+
 
 // Image Skeleton Component
 const ImageSkeleton = () => (
@@ -302,10 +305,10 @@ const ProductDetailsPage = ({ params }) => {
   const predefinedBrands = [
     { value: '', label: 'Select Brand', isDisabled: true },
     { value: 'generic', label: 'Generic Product' },
-    { value: 'brand1', label: 'Grand Brand 1' },
-    { value: 'brand2', label: 'Grand Brand 2' },
-    { value: 'brand3', label: 'Grand Brand 3' },
-    { value: 'brand4', label: 'Grand Brand 4' },
+    { value: 'samsung', label: 'Samsung' },
+    { value: 'apple', label: 'Apple' },
+    { value: 'nokia', label: 'Nokia' },
+    { value: 'mi', label: 'Mi' },
   ];
 
   // Add S3 direct upload functionality
@@ -363,28 +366,33 @@ const ProductDetailsPage = ({ params }) => {
       setBrandDocument(file);
     }
   };
-  
-  // Update the variation image handling to simply store files for later upload
+  const imageFilesRef = useRef({});
   const handleCombinationImageUpload = (index, event) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    
-    // Convert FileList to array and store the actual File objects
+  
     const imageFiles = Array.from(files);
-    
-    // Store both files and a preview URL
+  
+    // Store the files outside of React state
+    imageFilesRef.current[index] = imageFiles;
+  
+    // Store only a flag in state, no File objects or URLs
     const newCombinations = [...variantCombinations];
-    newCombinations[index].imageFiles = imageFiles;
-    newCombinations[index].imageCount = imageFiles.length;
     
-    // Create a single preview URL for display
+    // Clean up any existing preview URL
     if (newCombinations[index].previewUrl) {
       URL.revokeObjectURL(newCombinations[index].previewUrl);
     }
-    newCombinations[index].previewUrl = URL.createObjectURL(imageFiles[0]);
-    
+  
+    newCombinations[index] = {
+      ...newCombinations[index],
+      hasImage: true,
+      imageSelected: true
+    };
+  
     setVariantCombinations(newCombinations);
   };
+  
   
   // Update the variation image upload to handle the file objects
   const uploadVariationImages = async (combinations) => {
@@ -394,8 +402,8 @@ const ProductDetailsPage = ({ params }) => {
     for (let i = 0; i < updatedCombinations.length; i++) {
       const combo = updatedCombinations[i];
       
-      // Skip if no image files
-      if (!combo.imageFiles || combo.imageFiles.length === 0) {
+      // Skip if no image selected
+      if (!combo.imageSelected || !imageFilesRef.current[i]) {
         updatedCombinations[i].image = null;
         continue;
       }
@@ -403,19 +411,23 @@ const ProductDetailsPage = ({ params }) => {
       try {
         // Upload each file to S3
         const uploadedUrls = [];
-        for (let j = 0; j < combo.imageFiles.length; j++) {
-          const file = combo.imageFiles[j];
-          console.log(`Uploading variation image ${j+1} for combination ${i+1}...`);
-          const s3Result = await uploadToS3(file, 'variations');
-          uploadedUrls.push(s3Result.url);
+        const files = imageFilesRef.current[i];
+        
+        if (files && files.length > 0) {
+          for (let j = 0; j < files.length; j++) {
+            const file = files[j];
+            console.log(`Uploading variation image ${j+1} for combination ${i+1}...`);
+            const s3Result = await uploadToS3(file, 'variations');
+            uploadedUrls.push(s3Result.url);
+          }
+          
+          // Store the uploaded URLs
+          updatedCombinations[i].image = uploadedUrls.length === 1 ? uploadedUrls[0] : uploadedUrls;
+          console.log(`Uploaded ${uploadedUrls.length} images for combination ${i+1}`);
         }
-        
-        // Store the uploaded URLs
-        updatedCombinations[i].image = uploadedUrls;
-        console.log(`Uploaded ${uploadedUrls.length} images for combination ${i+1}`);
-        
       } catch (error) {
         console.error(`Error uploading images for combination ${i+1}:`, error);
+        // Keep processing other combinations
       }
     }
     
@@ -425,16 +437,16 @@ const ProductDetailsPage = ({ params }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    // Always validate base pricing
+    // Always validate base MRP price
     if (!mrpPrice) newErrors.mrpPrice = "MRP price is required";
     else if (isNaN(mrpPrice) || Number(mrpPrice) <= 0) newErrors.mrpPrice = "MRP price must be a positive number";
     
-    if (!sellingPrice) newErrors.sellingPrice = "Selling price is required";
-    else if (isNaN(sellingPrice) || Number(sellingPrice) <= 0) newErrors.sellingPrice = "Selling price must be a positive number";
-    else if (Number(sellingPrice) > Number(mrpPrice)) newErrors.sellingPrice = "Selling price cannot be greater than MRP price";
-    
-    // Validate stock only if no variations
+    // Only validate selling price and stock if no variations
     if (!hasVariations) {
+      if (!sellingPrice) newErrors.sellingPrice = "Selling price is required";
+      else if (isNaN(sellingPrice) || Number(sellingPrice) <= 0) newErrors.sellingPrice = "Selling price must be a positive number";
+      else if (Number(sellingPrice) > Number(mrpPrice)) newErrors.sellingPrice = "Selling price cannot be greater than MRP price";
+      
       if (!stockQty) newErrors.stockQty = "Stock quantity is required";
       else if (isNaN(stockQty) || Number(stockQty) < 0 || !Number.isInteger(Number(stockQty))) {
         newErrors.stockQty = "Stock quantity must be a non-negative integer";
@@ -493,6 +505,9 @@ const ProductDetailsPage = ({ params }) => {
     
     try {
       const session = await getSession();
+      console.log("Session obtained, starting uploads");
+      
+      // Step 1: Handle all S3 uploads first
       
       // Upload brand document if provided
       let brandDocumentUrl = null;
@@ -501,6 +516,7 @@ const ProductDetailsPage = ({ params }) => {
           console.log('Uploading brand document...');
           const s3Result = await uploadToS3(brandDocument, 'documents');
           brandDocumentUrl = s3Result.url;
+          console.log('Brand document uploaded successfully:', brandDocumentUrl);
         } catch (error) {
           console.error('Error uploading brand document:', error);
           setApiError('Failed to upload brand document. Please try again.');
@@ -509,14 +525,52 @@ const ProductDetailsPage = ({ params }) => {
         }
       }
       
-      // Process variation images if needed
-      let processedCombinations = variantCombinations;
+      // Deep clone combinations to avoid modifying state directly
+      let processedCombinations = JSON.parse(JSON.stringify(variantCombinations));
+      
+      // Upload variation images if needed
       if (hasVariations && variantCombinations.length > 0) {
-        console.log('Uploading variation images...');
-        processedCombinations = await uploadVariationImages(variantCombinations);
+        console.log('Starting variation image uploads...');
+        
+        // Process each combination with image files
+        for (let i = 0; i < processedCombinations.length; i++) {
+          const combo = processedCombinations[i];
+          
+          // Skip if no image selected
+          if (!combo.imageSelected || !imageFilesRef.current[i]) {
+            processedCombinations[i].image = null;
+            continue;
+          }
+          
+          try {
+            // Upload each file to S3
+            const uploadedUrls = [];
+            const files = imageFilesRef.current[i];
+            
+            if (files && files.length > 0) {
+              for (let j = 0; j < files.length; j++) {
+                const file = files[j];
+                console.log(`Uploading variation image ${j+1} for combination ${i+1}...`);
+                const s3Result = await uploadToS3(file, 'variations');
+                uploadedUrls.push(s3Result.url);
+              }
+              
+              // Store the uploaded URLs
+              processedCombinations[i].image = uploadedUrls.length === 1 ? uploadedUrls[0] : uploadedUrls;
+              console.log(`Uploaded ${uploadedUrls.length} images for combination ${i+1}`);
+            }
+          } catch (error) {
+            console.error(`Error uploading images for combination ${i+1}:`, error);
+            setApiError(`Failed to upload image for variation ${i+1}. Please try again.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        console.log('All variation images uploaded successfully');
       }
       
-      // Create payload using the expected structure
+      // Step 2: Create payload using the expected structure
       const finalPayload = {
         productId: product?.product_id,
         categoryId: product?.category?._id,
@@ -587,7 +641,9 @@ const ProductDetailsPage = ({ params }) => {
             // Extract variation attributes with their IDs
             const variantData = {};
             Object.entries(combo)
-              .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
+              .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image' &&
+                      key !== 'hasImage' && key !== 'imageSelected' && 
+                      key !== 'previewUrl' && key !== 'imageCount')
               .forEach(([attrName, value]) => {
                 const attribute = product.attributes.find(attr => attr.name === attrName);
                 const option = attribute?.options.find(opt => opt.value === value);
@@ -599,33 +655,32 @@ const ProductDetailsPage = ({ params }) => {
                 };
               });
             
-            // Handle multiple images
+            // Handle multiple images vs single image
             let imageUrl = combo.image;
+            let additionalImages = [];
+            
             // If image is an array, use the first one as primary image
             if (Array.isArray(combo.image) && combo.image.length > 0) {
               imageUrl = combo.image[0];
+              additionalImages = combo.image.slice(1);
             }
-              
+            
             return {
               variant: variantData,
               price: parseFloat(combo.price) || 0,
               stock: parseInt(combo.quantity, 10) || 0,
               imageUrl: imageUrl,
               // Include additional images if any
-              additionalImages: Array.isArray(combo.image) && combo.image.length > 1 
-                ? combo.image.slice(1) 
-                : []
+              additionalImages: additionalImages
             };
           })
         };
       }
       
-      console.log("Final API payload:", JSON.stringify(finalPayload, null, 2));
-      
+      // Step 3: Make the API call
       // Make sure we're using the correct product ID format
       const apiProductId = product?.product_id || productId; 
-      console.log("API Product ID:", apiProductId);
-
+      
       // Ensure product_id is set in the payload
       finalPayload.product_id = apiProductId;
       
@@ -635,12 +690,12 @@ const ProductDetailsPage = ({ params }) => {
         setIsSubmitting(false);
         return;
       }
+
+      console.log(`Making API request to save product details...`);
+      console.log(`Endpoint: /v1/seller/product/${apiProductId}/details`);
+      console.log("Payload:", JSON.stringify(finalPayload, null, 2));
       
       try {
-        // API call to save product details
-        console.log(`Making API request to: /v1/seller/product/${apiProductId}/details`);
-        console.log("Final payload:", JSON.stringify(finalPayload, null, 2));
-        
         const response = await axiosInstance.post(
           `/v1/seller/product/${apiProductId}/details`,
           finalPayload,
@@ -659,7 +714,6 @@ const ProductDetailsPage = ({ params }) => {
           
           // Show success message
           setApiError('');
-          // const nextUrl = `/store-manage/inventory/${sellerid}/add/${unwrappedParams.productId}/shipping`;
           const nextUrl = `/store-manage/inventory/listing`;
           console.log(`Redirecting to: ${nextUrl}`);
           
@@ -1166,7 +1220,9 @@ const ProductDetailsPage = ({ params }) => {
                                     <thead className="bg-gray-50">
                                       <tr>
                                         {Object.keys(variantCombinations[0])
-                                          .filter(key => key !== 'price' && key !== 'quantity' && key !== 'image')
+                                          .filter(key => key !== 'price' && key !== 'quantity' && key !== 'image' &&
+                                                  key !== 'hasImage' && key !== 'imageSelected' && 
+                                                  key !== 'previewUrl' && key !== 'imageCount')
                                           .map(attr => (
                                             <th key={attr} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                               {attr}
@@ -1190,7 +1246,9 @@ const ProductDetailsPage = ({ params }) => {
                                       {variantCombinations.map((combination, index) => (
                                         <tr key={index}>
                                           {Object.entries(combination)
-                                            .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
+                                            .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image' &&
+                                                    key !== 'hasImage' && key !== 'imageSelected' && 
+                                                    key !== 'previewUrl' && key !== 'imageCount')
                                             .map(([attr, value]) => (
                                               <td key={attr} className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
@@ -1256,34 +1314,37 @@ const ProductDetailsPage = ({ params }) => {
                                                 Select Images
                                               </label>
                                               
-                                              {/* Simple image preview and count */}
+                                              {/* Simple image selection indicator */}
                                               <div className="mt-1">
-                                                {combination.previewUrl ? (
+                                                {combination.imageSelected ? (
                                                   <div className="flex items-center gap-2">
-                                                    <img
-                                                      src={combination.previewUrl}
-                                                      alt={`Variation ${index} Preview`}
-                                                      className="w-10 h-10 object-cover rounded border border-gray-200"
-                                                    />
-                                                    <div className="text-xs text-gray-600">
-                                                      <p className="font-medium">{combination.imageCount} {combination.imageCount === 1 ? 'image' : 'images'} selected</p>
-                                                      <button 
-                                                        type="button"
-                                                        onClick={() => {
-                                                          const newCombinations = [...variantCombinations];
-                                                          if (newCombinations[index].previewUrl) {
-                                                            URL.revokeObjectURL(newCombinations[index].previewUrl);
-                                                          }
-                                                          newCombinations[index].imageFiles = [];
-                                                          newCombinations[index].imageCount = 0;
-                                                          newCombinations[index].previewUrl = null;
-                                                          setVariantCombinations(newCombinations);
-                                                        }}
-                                                        className="text-red-500 hover:text-red-700 text-xs"
-                                                      >
-                                                        Clear
-                                                      </button>
+                                                    <div className="text-xs text-green-600 font-medium">
+                                                      <span className="bg-green-50 px-2 py-1 rounded flex items-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        Images selected
+                                                      </span>
                                                     </div>
+                                                    <button 
+                                                      type="button"
+                                                      onClick={() => {
+                                                        const newCombinations = [...variantCombinations];
+                                                        
+                                                        // Clean up refs
+                                                        delete imageFilesRef.current[index];
+                                                        
+                                                        newCombinations[index] = {
+                                                          ...newCombinations[index],
+                                                          imageSelected: false,
+                                                          hasImage: false
+                                                        };
+                                                        setVariantCombinations(newCombinations);
+                                                      }}
+                                                      className="text-red-500 hover:text-red-700 text-xs"
+                                                    >
+                                                      Clear
+                                                    </button>
                                                   </div>
                                                 ) : (
                                                   <div className="text-xs text-gray-400">No images selected</div>

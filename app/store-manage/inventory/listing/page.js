@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import axiosInstance from '../../../utils/axios';
 import S3Image from '../../../components/S3Image';
@@ -70,6 +70,24 @@ export default function ProductListing() {
       setFilteredProducts(products.filter(product => product.status === activeTab));
     }
   }, [activeTab, products]);
+
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const dropdownRef = useRef();
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    }
+  
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleDropdownClick = (productId) => {
+    setOpenDropdown(openDropdown === productId ? null : productId);
+  };
 
   return (
     <div className="p-3 max-w-7xl mx-auto">
@@ -222,6 +240,9 @@ export default function ProductListing() {
                           {product.descriptions[0]?.title.split(' ').slice(0, 4).join(' ')}
                           {product.descriptions[0]?.title.split(' ').length > 4 ? '...' : ''}
                         </div>
+                          <span className="text-gray-500 text-xs bg-gray-100 border border-gray-500 rounded-full px-2 py-0">
+                            In {product.category_id?.name}
+                          </span>
                       </div>
                     </div>
                   </td>
@@ -234,33 +255,78 @@ export default function ProductListing() {
                       })}
                     </dd>
                   </td>
+
                   <td className="p-2 border border-gray-200">
                     <span className={`px-2 py-1 rounded text-xs ${
-                      product.status === 'live' 
+                      product.status === 'published' 
                         ? 'bg-green-200 text-green-700'
-                        : 'bg-yellow-200 text-yellow-700'
+                        : product.status === 'draft'
+                          ? 'bg-yellow-200 text-yellow-700'
+                          : product.status === 'in-review'
+                            ? 'bg-blue-200 text-blue-700'
+                            : product.status === 'varification_failed'
+                              ? 'bg-red-200 text-red-700'
+                              : 'bg-gray-200 text-gray-700'
                     }`}>
                       {product.status.toUpperCase()}
                     </span>
                   </td>
                   <td className="p-2 text-gray-900 truncate border border-gray-200">{product.price ?? 'N/A'} / {product.quantity ?? 'N/A'}</td>
                   <td className="p-2 text-gray-900 truncate border border-gray-200">{product.unified_sku}</td>
-                  <td className="p-2">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setSelectedProduct(product)}
-                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none"
-                      >
-                        Manage
-                      </button>
-                      <Link
-                        href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
-                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer focus:outline-none flex items-center"
-                      >
-                        Edit <Icon icon="system-uicons:pencil" className='text-blue-600 ml-1' width="14" height="14" />
-                      </Link>
-                    </div>
-                  </td>
+                  <td className="p-2 relative">
+                      <div ref={dropdownRef} className="relative inline-block text-left">
+                        <button
+                          onClick={() => handleDropdownClick(product.product_id)}
+                          className="p-1 rounded hover:bg-gray-100 focus:outline-none"
+                        >
+                          <Icon icon="mdi:dots-vertical" width="20" height="20" />
+                        </button>
+
+                        {openDropdown === product.product_id && (
+                          <div className="absolute left-0 z-10 mt-2 w-40 bg-white shadow-lg ring-1 border border-gray-200 ring-opacity-9 focus:outline-none">
+                              
+                            <div className="text-sm text-gray-700">
+                              {product.status === 'in-review' && (
+                                <>
+                                    <Link
+                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                      className="block px-4 py-2 hover:bg-gray-100"
+                                    onClick={() => setOpenDropdown(null)}
+                                    >
+                                    Edit
+                                  </Link>
+                               
+                                    <Link
+                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                      className="block px-4 py-2 hover:bg-gray-100"
+                                    onClick={() => setOpenDropdown(null)}
+                                    >
+                                    Manage Inventory
+                                  </Link>
+                                    <Link
+                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                      className="block px-4 py-2 hover:bg-gray-100"
+                                    onClick={() => setOpenDropdown(null)}
+                                    >
+                                    Update Price
+                                  </Link>
+
+
+                                  </>
+                              )}
+
+                              <a
+                                onClick={() => setOpenDropdown(null)}
+                                className="block px-4 py-2"
+                                >
+                                View product
+                              </a>
+                                </div>
+
+                          </div>
+                        )}
+                      </div>
+                    </td>
                 </tr>
               ))}
             </tbody>
