@@ -77,6 +77,10 @@ export default function Home() {
       if (data.success) {
         setOtpSent(true);
         setError("");
+        // Auto-fill OTP if it exists in response
+        if (data.data?.otp) {
+          setOtp(data.data.otp);
+        }
       } else {
         setError(data.message || "Failed to send OTP. Please try again.");
         setOtpSent(false);
