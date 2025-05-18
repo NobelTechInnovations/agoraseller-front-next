@@ -7,11 +7,201 @@ import S3Image from '../../../components/S3Image';
 import { getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+
+// Product Details Modal Component
+const ProductDetailsModal = ({ product, onClose }) => {
+  if (!product) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity overflow-y-auto">
+      <div className="relative bg-white rounded-lg w-11/12 max-w-5xl max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 focus:outline-none"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Left column - Images */}
+            <div className="w-full md:w-1/3">
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Product Images</h3>
+                <div className="bg-gray-100 rounded-lg p-2">
+                  <div className="mb-4">
+                    {product.images?.thumbnail_image ? (
+                      <S3Image
+                        src={product.images.thumbnail_image}
+                        alt="Product thumbnail"
+                        width={300}
+                        height={300}
+                        className="w-full h-auto rounded-lg"
+                      />
+                    ) : (
+                      <div className="bg-gray-200 rounded-lg w-full h-40 flex items-center justify-center text-gray-500">No thumbnail</div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    {product.images?.gallery_images?.map((img, index) => (
+                      <S3Image
+                        key={index}
+                        src={img}
+                        alt={`Gallery image ${index + 1}`}
+                        width={100}
+                        height={100}
+                        className="w-full h-auto rounded"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Right column - Details */}
+            <div className="w-full md:w-2/3">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">
+                {product.descriptions?.[0]?.title || 'No Title Available'}
+              </h2>
+              
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {product.status?.toUpperCase()}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    SKU: {product.unified_sku}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {product.descriptions?.[0]?.description || 'No description available'}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Product Details</h3>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <div className="mb-2">
+                      <span className="text-xs text-gray-500">Category:</span>
+                      <p className="text-sm font-medium">{product.category_id?.name || 'N/A'}</p>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-xs text-gray-500">Product Type:</span>
+                      <p className="text-sm font-medium">{product.type || 'N/A'}</p>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-xs text-gray-500">Condition:</span>
+                      <p className="text-sm font-medium">{product.condition || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Created:</span>
+                      <p className="text-sm font-medium">
+                        {new Date(product.createdAt).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Brand Information</h3>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <div className="mb-2">
+                      <span className="text-xs text-gray-500">Brand:</span>
+                      <p className="text-sm font-medium">{product.meta?.brand_details?.name || 'N/A'}</p>
+                    </div>
+                    <div className="mb-2">
+                      <span className="text-xs text-gray-500">Manufacturer:</span>
+                      <p className="text-sm font-medium">{product.meta?.brand_details?.manufacturer || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Weight:</span>
+                      <p className="text-sm font-medium">{product.meta?.weight ? `${product.meta.weight}g` : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Attributes */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Attributes</h3>
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {product.meta?.attributes?.map((attr, index) => (
+                      <div key={index} className="flex flex-col">
+                        <span className="text-xs text-gray-500">{attr.name}:</span>
+                        <p className="text-sm font-medium">{attr.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Variations */}
+              {product.has_variations && product.combinations?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Variations</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse text-sm text-gray-600">
+                      <thead className="bg-gray-100 text-xs uppercase text-gray-700">
+                        <tr>
+                          {Object.keys(product.combinations[0].variant).map((key) => (
+                            <th key={key} className="px-4 py-2 text-left">{key}</th>
+                          ))}
+                          <th className="px-4 py-2 text-left">Price</th>
+                          <th className="px-4 py-2 text-left">Stock</th>
+                          <th className="px-4 py-2 text-left">SKU</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {product.combinations.map((combo, index) => (
+                          <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
+                            {Object.entries(combo.variant).map(([key, data]) => (
+                              <td key={key} className="px-4 py-2">
+                                {key.toLowerCase() === 'color' ? (
+                                  <div className="flex items-center">
+                                    <div 
+                                      className="w-4 h-4 rounded-full mr-2" 
+                                      style={{ backgroundColor: data.value }}
+                                    ></div>
+                                    {data.value}
+                                  </div>
+                                ) : (
+                                  data.value
+                                )}
+                              </td>
+                            ))}
+                            <td className="px-4 py-2">₹{combo.price.$numberDecimal}</td>
+                            <td className="px-4 py-2">{combo.stock}</td>
+                            <td className="px-4 py-2">{combo.sku}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ProductListing() {
   const { data: session, status } = useSession();
   const sellerId = session?.user?.id;
 
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productDetailsLoading, setProductDetailsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -60,6 +250,35 @@ export default function ProductListing() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch product details for the modal
+  const fetchProductDetails = async (productId) => {
+    try {
+      setProductDetailsLoading(true);
+      const session = await getSession();
+      const response = await axiosInstance.get(`/v1/seller/product/${productId}/details`, {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+      
+      if (response.data.success) {
+        setSelectedProduct(response.data.data.product);
+      } else {
+        console.error('Failed to fetch product details:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+    } finally {
+      setProductDetailsLoading(false);
+    }
+  };
+
+  // Function to handle opening the details modal
+  const handleViewProduct = async (productId) => {
+    await fetchProductDetails(productId);
+    setOpenDropdown(null); // Close dropdown after selecting
   };
 
   useEffect(() => {
@@ -316,9 +535,9 @@ export default function ProductListing() {
                               )}
 
                               <a
-                                onClick={() => setOpenDropdown(null)}
-                                className="block px-4 py-2"
-                                >
+                                onClick={() => handleViewProduct(product.product_id)}
+                                className="block px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                              >
                                 View product
                               </a>
                                 </div>
@@ -360,6 +579,14 @@ export default function ProductListing() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Product Details Modal */}
+        {selectedProduct && (
+          <ProductDetailsModal 
+            product={selectedProduct} 
+            onClose={() => setSelectedProduct(null)} 
+          />
         )}
 
     </div>
