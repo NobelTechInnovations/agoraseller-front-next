@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { use } from 'react';
 import axiosInstance from '../../../../../utils/axios';
 import { getSession } from 'next-auth/react';
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import Select from 'react-select';
 
@@ -109,6 +109,8 @@ const ProductDetailsPage = ({ params }) => {
   const [categoryPath, setCategoryPath] = useState('');
   const [isGeneratingCombinations, setIsGeneratingCombinations] = useState(false);
   const [hasVariations, setHasVariations] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
   
 
 
@@ -306,7 +308,42 @@ const ProductDetailsPage = ({ params }) => {
     { value: 'brand4', label: 'Grand Brand 4' },
   ];
 
-  // Handle brand document upload
+  // Add S3 direct upload functionality
+  const uploadToS3 = async (file, folder = 'products') => {
+    try {
+      // Generate a clean file name
+      const timestamp = Date.now();
+      const originalName = file.name.replace(/[^a-zA-Z0-9.]/g, '-'); // Replace special chars with hyphens
+      const fileName = `${timestamp}-${originalName}`;
+      const key = `${folder}/${fileName}`;
+
+      // Convert File to Buffer
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Upload to S3
+      const command = new PutObjectCommand({
+        Bucket: process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      });
+
+      await s3Client.send(command);
+
+      // Return the S3 URL with proper encoding
+      const encodedKey = encodeURIComponent(key);
+      return {
+        url: `https://${process.env.NEXT_PUBLIC_AWS_S3_BUCKET_NAME}.s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com/${encodedKey}`,
+        key: key
+      };
+    } catch (error) {
+      console.error('Error uploading to S3:', error);
+      throw error;
+    }
+  };
+
+  // Update brand document upload handler to just store the file
   const handleBrandDocumentUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -315,14 +352,74 @@ const ProductDetailsPage = ({ params }) => {
         setBrandDocument(null);
         return;
       }
+      
       if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
         setBrandDocumentError('Only PDF, JPEG, and PNG files are allowed');
         setBrandDocument(null);
         return;
       }
-      setBrandDocument(file);
+      
       setBrandDocumentError('');
+      setBrandDocument(file);
     }
+  };
+  
+  // Update the variation image handling to simply store files for later upload
+  const handleCombinationImageUpload = (index, event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Convert FileList to array and store the actual File objects
+    const imageFiles = Array.from(files);
+    
+    // Store both files and a preview URL
+    const newCombinations = [...variantCombinations];
+    newCombinations[index].imageFiles = imageFiles;
+    newCombinations[index].imageCount = imageFiles.length;
+    
+    // Create a single preview URL for display
+    if (newCombinations[index].previewUrl) {
+      URL.revokeObjectURL(newCombinations[index].previewUrl);
+    }
+    newCombinations[index].previewUrl = URL.createObjectURL(imageFiles[0]);
+    
+    setVariantCombinations(newCombinations);
+  };
+  
+  // Update the variation image upload to handle the file objects
+  const uploadVariationImages = async (combinations) => {
+    const updatedCombinations = [...combinations];
+    
+    // Process each combination with image files
+    for (let i = 0; i < updatedCombinations.length; i++) {
+      const combo = updatedCombinations[i];
+      
+      // Skip if no image files
+      if (!combo.imageFiles || combo.imageFiles.length === 0) {
+        updatedCombinations[i].image = null;
+        continue;
+      }
+      
+      try {
+        // Upload each file to S3
+        const uploadedUrls = [];
+        for (let j = 0; j < combo.imageFiles.length; j++) {
+          const file = combo.imageFiles[j];
+          console.log(`Uploading variation image ${j+1} for combination ${i+1}...`);
+          const s3Result = await uploadToS3(file, 'variations');
+          uploadedUrls.push(s3Result.url);
+        }
+        
+        // Store the uploaded URLs
+        updatedCombinations[i].image = uploadedUrls;
+        console.log(`Uploaded ${uploadedUrls.length} images for combination ${i+1}`);
+        
+      } catch (error) {
+        console.error(`Error uploading images for combination ${i+1}:`, error);
+      }
+    }
+    
+    return updatedCombinations;
   };
 
   const validateForm = () => {
@@ -387,29 +484,214 @@ const ProductDetailsPage = ({ params }) => {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSaveAndNext = () => {
+  const handleSaveAndNext = async () => {
     if (!validateForm()) return;
     
-    // Here you would typically save the form data
-    // For this example, we'll just redirect to the next step
+    // Set loading state and clear previous errors
+    setIsSubmitting(true);
+    setApiError('');
     
-    // Placeholder for API call to save data
-    console.log("Submitting product details:", {
-      productId,
-      attributeValues,
-      mrpPrice,
-      wdrpPrice,
-      sellingPrice,
-      stockQty,
-      productWeight,
-      brand,
-      manufacturer,
-      packer,
-      categoryPath
-    });
-    
-    // Navigate to the next step
-    router.push(`/store-manage/inventory/${sellerid}/add/${productId}/shipping`);
+    try {
+      const session = await getSession();
+      
+      // Upload brand document if provided
+      let brandDocumentUrl = null;
+      if (brand !== 'generic' && brandDocument) {
+        try {
+          console.log('Uploading brand document...');
+          const s3Result = await uploadToS3(brandDocument, 'documents');
+          brandDocumentUrl = s3Result.url;
+        } catch (error) {
+          console.error('Error uploading brand document:', error);
+          setApiError('Failed to upload brand document. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Process variation images if needed
+      let processedCombinations = variantCombinations;
+      if (hasVariations && variantCombinations.length > 0) {
+        console.log('Uploading variation images...');
+        processedCombinations = await uploadVariationImages(variantCombinations);
+      }
+      
+      // Create payload using the expected structure
+      const finalPayload = {
+        productId: product?.product_id,
+        categoryId: product?.category?._id,
+        
+        // Attributes as array of objects with detailed info
+        attributes: Object.entries(attributeValues).map(([attrName, attrValue]) => {
+          // Find the attribute by name
+          const attribute = product.attributes.find(attr => attr.name === attrName);
+          // Find option ID if it's a selection
+          let optionId = null;
+          if (attribute && attribute.options && attribute.options.length > 0) {
+            const option = attribute.options.find(opt => opt.value === attrValue);
+            if (option) optionId = option._id;
+          }
+          
+          return {
+            attributeId: attribute?._id,
+            name: attrName,
+            value: attrValue,
+            optionId: optionId
+          };
+        }),
+        
+        // Pricing in a nested object
+        pricing: {
+          mrp: parseFloat(mrpPrice) || 0,
+          selling_price: parseFloat(sellingPrice) || 0,
+          wdrp: parseFloat(wdrpPrice) || 0
+        },
+        
+        // Stock quantity if no variations
+        stock: !hasVariations ? parseInt(stockQty, 10) || 0 : null,
+        
+        // Product details
+        weight: parseFloat(productWeight) || null,
+        
+        // Brand info in a nested object
+        brand: {
+          name: brand === 'generic' ? 'Generic Product' : brand,
+          manufacturer: manufacturer || null,
+          packer: packer || null,
+          documentUrl: brandDocumentUrl
+        },
+        
+        // Variations flag
+        hasVariations: hasVariations && processedCombinations.length > 0
+      };
+      
+      // Add variations if enabled
+      if (finalPayload.hasVariations) {
+        finalPayload.variations = {
+          // Include attribute IDs and option IDs for variations
+          attributes: Object.keys(variantSelections).map(attrName => {
+            const attribute = product.attributes.find(attr => attr.name === attrName);
+            return {
+              attributeId: attribute?._id,
+              name: attrName,
+              values: variantSelections[attrName].map(value => {
+                const option = attribute?.options.find(opt => opt.value === value);
+                return {
+                  optionId: option?._id,
+                  value: value
+                };
+              })
+            };
+          }),
+          combinations: processedCombinations.map(combo => {
+            // Extract variation attributes with their IDs
+            const variantData = {};
+            Object.entries(combo)
+              .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
+              .forEach(([attrName, value]) => {
+                const attribute = product.attributes.find(attr => attr.name === attrName);
+                const option = attribute?.options.find(opt => opt.value === value);
+                
+                variantData[attrName] = {
+                  attributeId: attribute?._id,
+                  optionId: option?._id,
+                  value: value
+                };
+              });
+            
+            // Handle multiple images
+            let imageUrl = combo.image;
+            // If image is an array, use the first one as primary image
+            if (Array.isArray(combo.image) && combo.image.length > 0) {
+              imageUrl = combo.image[0];
+            }
+              
+            return {
+              variant: variantData,
+              price: parseFloat(combo.price) || 0,
+              stock: parseInt(combo.quantity, 10) || 0,
+              imageUrl: imageUrl,
+              // Include additional images if any
+              additionalImages: Array.isArray(combo.image) && combo.image.length > 1 
+                ? combo.image.slice(1) 
+                : []
+            };
+          })
+        };
+      }
+      
+      console.log("Final API payload:", JSON.stringify(finalPayload, null, 2));
+      
+      // Make sure we're using the correct product ID format
+      const apiProductId = product?.product_id || productId; 
+      console.log("API Product ID:", apiProductId);
+
+      // Ensure product_id is set in the payload
+      finalPayload.product_id = apiProductId;
+      
+      if (!apiProductId) {
+        console.error("Missing product ID for API call");
+        setApiError("Product ID is missing. Please refresh the page and try again.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      try {
+        // API call to save product details
+        console.log(`Making API request to: /v1/seller/product/${apiProductId}/details`);
+        console.log("Final payload:", JSON.stringify(finalPayload, null, 2));
+        
+        const response = await axiosInstance.post(
+          `/v1/seller/product/${apiProductId}/details`,
+          finalPayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.accessToken}`,
+            },
+          }
+        );
+        
+        console.log("API Response:", response.data);
+        
+        if (response.data.success) {
+          console.log("Product details saved successfully!");
+          
+          // Show success message
+          setApiError('');
+          // const nextUrl = `/store-manage/inventory/${sellerid}/add/${unwrappedParams.productId}/shipping`;
+          const nextUrl = `/store-manage/inventory/listing`;
+          console.log(`Redirecting to: ${nextUrl}`);
+          
+          // Give a short delay to show success feedback
+          setTimeout(() => {
+            router.push(nextUrl);
+          }, 500);
+        } else {
+          // Handle API error
+          setApiError(response.data.message || 'Failed to save product details. Please try again.');
+          console.error('Error saving product details:', response.data.message);
+        }
+      } catch (error) {
+        console.error('API Error:', error);
+        if (error.response) {
+          console.error('Error Response:', error.response.data);
+          setApiError(error.response.data.message || 'Server error. Please try again.');
+        } else if (error.request) {
+          console.error('Error Request:', error.request);
+          setApiError('No response from server. Please check your connection.');
+        } else {
+          console.error('Error Message:', error.message);
+          setApiError(error.message || 'An unexpected error occurred.');
+        }
+      }
+    } catch (error) {
+      console.error('Overall Error:', error);
+      setApiError('An unexpected error occurred. Please try again later.');
+    } finally {
+      // Reset loading state
+      setIsSubmitting(false);
+    }
   };
 
   // Add useEffect to fetch product details and generate pre-signed URLs
@@ -498,6 +780,19 @@ const ProductDetailsPage = ({ params }) => {
                 <b>Note:</b> Please provide complete details about your product specifications, pricing, and inventory information.
               </p>
             </div>
+
+            {apiError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+                <p className="flex items-center">
+                  <span className="mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  {apiError}
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-6">
               {/* Product Form - Full width */}
@@ -628,32 +923,53 @@ const ProductDetailsPage = ({ params }) => {
                             <label className="block font-bold text-sm text-gray-700 mb-1">
                               Brand Authorization Document*
                             </label>
-                            <div className="mt-1 flex items-center">
-                              <input
-                                type="file"
-                                onChange={handleBrandDocumentUpload}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4
-                                  file:rounded-md file:border-0
-                                  file:text-sm file:font-semibold
-                                  file:bg-blue-50 file:text-blue-700
-                                  hover:file:bg-blue-100"
-                              />
+                            <div className="mt-1 flex flex-col gap-2">
+                              {brandDocument ? (
+                                <div className="bg-green-50 p-3 rounded border border-green-100 flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-medium text-green-800">
+                                      {brandDocument.name}
+                                    </span>
+                                  </div>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => {
+                                      setBrandDocument(null);
+                                      setBrandDocumentError('');
+                                    }}
+                                    className="text-gray-500 hover:text-red-500"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <input
+                                  type="file"
+                                  onChange={handleBrandDocumentUpload}
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  className="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-blue-50 file:text-blue-700
+                                    hover:file:bg-blue-100"
+                                />
+                              )}
+                              
+                              {brandDocumentError && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {brandDocumentError}
+                                </p>
+                              )}
+                              <p className="text-sm text-gray-500">
+                                Please upload brand purchase or sale letter authority document (PDF, JPEG, or PNG, max 5MB)
+                              </p>
                             </div>
-                            {brandDocument && (
-                              <p className="mt-2 text-sm text-green-600">
-                                ✓ Document uploaded: {brandDocument.name}
-                              </p>
-                            )}
-                            {brandDocumentError && (
-                              <p className="mt-2 text-sm text-red-600">
-                                {brandDocumentError}
-                              </p>
-                            )}
-                            <p className="mt-2 text-sm text-gray-500">
-                              Please upload brand purchase or sale letter authority document (PDF, JPEG, or PNG, max 5MB)
-                            </p>
                           </div>
                         )}
                       </div>
@@ -774,11 +1090,11 @@ const ProductDetailsPage = ({ params }) => {
                       ) : (
                         <>
                           {/* Base MRP Price - Always show */}
-                          <div className="col-span-2">
+                          <div className="col-span-1">
                             <label htmlFor="mrpPrice" className="block font-bold text-sm text-gray-700 mb-1">
                               Base MRP Price (₹)* - Maximum price for all variations
                             </label>
-                            <div className="relative shadow-sm w-1/2">
+                            
                               <input
                                 type="number"
                                 id="mrpPrice"
@@ -789,8 +1105,26 @@ const ProductDetailsPage = ({ params }) => {
                                 min="0"
                                 step="0.01"
                               />
-                            </div>
+                            
                             {errors.mrpPrice && <p className="mt-1 text-sm text-red-600">{errors.mrpPrice}</p>}
+                          </div>
+
+                          {/* Product Weight - Always show at the end */}
+                          <div className="col-span-1">
+                            <label htmlFor="productWeight" className="block font-bold text-sm text-gray-700 mb-1">
+                              Product Weight (grams)
+                            </label>
+                            <input
+                              type="number"
+                              id="productWeight"
+                              value={productWeight}
+                              onChange={(e) => setProductWeight(e.target.value)}
+                              className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                              placeholder="0"
+                              min="0"
+                              step="0.01"
+                            />
+                            {errors.productWeight && <p className="mt-1 text-sm text-red-600">{errors.productWeight}</p>}
                           </div>
 
                           {/* Variant Attributes */}
@@ -903,35 +1237,59 @@ const ProductDetailsPage = ({ params }) => {
                                             </div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
-                                            <input
-                                              type="file"
-                                              accept="image/*"
-                                              onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                  const imageUrl = URL.createObjectURL(file);
-                                                  handleCombinationChange(index, 'image', imageUrl);
-                                                }
-                                              }}
-                                              className="hidden"
-                                              id={`image-upload-${index}`}
-                                            />
-                                            <label
-                                              htmlFor={`image-upload-${index}`}
-                                              className="cursor-pointer"
-                                            >
-                                              {combination.image ? (
-                                                <img
-                                                  src={combination.image}
-                                                  alt="Variation"
-                                                  className="w-12 h-12 object-cover rounded"
-                                                />
-                                              ) : (
-                                                <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
-                                                  Upload
-                                                </div>
-                                              )}
-                                            </label>
+                                            <div className="flex flex-col gap-2">
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={(e) => handleCombinationImageUpload(index, e)}
+                                                className="hidden"
+                                                id={`image-upload-${index}`}
+                                              />
+                                              <label
+                                                htmlFor={`image-upload-${index}`}
+                                                className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 py-1 px-2 rounded text-xs inline-flex items-center"
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Select Images
+                                              </label>
+                                              
+                                              {/* Simple image preview and count */}
+                                              <div className="mt-1">
+                                                {combination.previewUrl ? (
+                                                  <div className="flex items-center gap-2">
+                                                    <img
+                                                      src={combination.previewUrl}
+                                                      alt={`Variation ${index} Preview`}
+                                                      className="w-10 h-10 object-cover rounded border border-gray-200"
+                                                    />
+                                                    <div className="text-xs text-gray-600">
+                                                      <p className="font-medium">{combination.imageCount} {combination.imageCount === 1 ? 'image' : 'images'} selected</p>
+                                                      <button 
+                                                        type="button"
+                                                        onClick={() => {
+                                                          const newCombinations = [...variantCombinations];
+                                                          if (newCombinations[index].previewUrl) {
+                                                            URL.revokeObjectURL(newCombinations[index].previewUrl);
+                                                          }
+                                                          newCombinations[index].imageFiles = [];
+                                                          newCombinations[index].imageCount = 0;
+                                                          newCombinations[index].previewUrl = null;
+                                                          setVariantCombinations(newCombinations);
+                                                        }}
+                                                        className="text-red-500 hover:text-red-700 text-xs"
+                                                      >
+                                                        Clear
+                                                      </button>
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <div className="text-xs text-gray-400">No images selected</div>
+                                                )}
+                                              </div>
+                                            </div>
                                           </td>
                                           <td className="px-6 py-4 whitespace-nowrap">
                                             <button
@@ -952,23 +1310,7 @@ const ProductDetailsPage = ({ params }) => {
                         </>
                       )}
 
-                      {/* Product Weight - Always show at the end */}
-                      <div className="col-span-1">
-                        <label htmlFor="productWeight" className="block font-bold text-sm text-gray-700 mb-1">
-                          Product Weight (grams)
-                        </label>
-                        <input
-                          type="number"
-                          id="productWeight"
-                          value={productWeight}
-                          onChange={(e) => setProductWeight(e.target.value)}
-                          className={`mt-1 block w-full border ${errors.productWeight ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                          placeholder="0"
-                          min="0"
-                          step="0.01"
-                        />
-                        {errors.productWeight && <p className="mt-1 text-sm text-red-600">{errors.productWeight}</p>}
-                      </div>
+                      
                     </div>
                   )}
 
@@ -982,9 +1324,17 @@ const ProductDetailsPage = ({ params }) => {
                     <button
                       type="button"
                       onClick={handleSaveAndNext}
-                      className="inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-blue-700 border-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      disabled={isSubmitting}
+                      className={`inline-flex items-center px-4 py-2 border text-sm font-medium border-gray-900 text-blue-700 border-blue-700 ${isSubmitting ? 'bg-blue-50 cursor-not-allowed' : 'hover:bg-blue-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                     >
-                      Save and Next
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        'Save'
+                      )}
                     </button>
                   </div>
                 </form>
