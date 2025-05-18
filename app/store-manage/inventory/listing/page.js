@@ -286,7 +286,7 @@ export default function ProductListing() {
                           <div className="absolute left-0 z-10 mt-2 w-40 bg-white shadow-lg ring-1 border border-gray-200 ring-opacity-9 focus:outline-none">
                               
                             <div className="text-sm text-gray-700">
-                              {product.status === 'in-review' && (
+                              {product.status === 'published' && (
                                 <>
                                     <Link
                                       href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}

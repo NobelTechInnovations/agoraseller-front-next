@@ -10,6 +10,7 @@ import { getSession } from 'next-auth/react';
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import Select from 'react-select';
+import S3Image from '../../../../../components/S3Image';
 
 // Image Skeleton Component
 const ImageSkeleton = () => (
@@ -169,15 +170,27 @@ const ProductDetailsPage = ({ params }) => {
 
   // Function to generate combinations
   const generateCombinations = (selections) => {
-    const attributes = Object.keys(selections).filter(key => selections[key]?.length > 0);
+    if (!selections || typeof selections !== 'object') {
+      console.warn("Invalid selections object passed to generateCombinations:", selections);
+      return [];
+    }
+
+    const attributes = Object.keys(selections).filter(key => 
+      selections[key] && Array.isArray(selections[key]) && selections[key].length > 0
+    );
+    
     if (attributes.length === 0) return [];
 
     const combinations = [{}];
     for (const attribute of attributes) {
       const values = selections[attribute];
+      if (!Array.isArray(values)) continue;
+      
       const newCombinations = [];
       for (const combination of combinations) {
         for (const value of values) {
+          if (value === undefined || value === null) continue;
+          
           newCombinations.push({
             ...combination,
             [attribute]: value
@@ -197,12 +210,18 @@ const ProductDetailsPage = ({ params }) => {
 
   // Function to format variant options for react-select
   const formatVariantOptions = (attribute) => {
-    return attribute.options.map(option => ({
-      value: option.value,
-      label: option.name,
-      color: attribute.name.toLowerCase() === 'color' ? option.value : null,
-      name: option.name
-    }));
+    if (!attribute || !attribute.options || !Array.isArray(attribute.options)) {
+      return [];
+    }
+    
+    return attribute.options
+      .filter(option => option && option.value) // Filter out invalid options
+      .map(option => ({
+        value: option.value,
+        label: option.name || option.value,
+        color: attribute.name && attribute.name.toLowerCase() === 'color' ? option.value : null,
+        name: option.name || option.value
+      }));
   };
 
   // Custom styles for react-select
@@ -253,9 +272,14 @@ const ProductDetailsPage = ({ params }) => {
 
   // Update handleVariantChange
   const handleVariantChange = async (attributeName, selectedOptions) => {
+    if (!attributeName || !Array.isArray(selectedOptions)) {
+      console.warn("Invalid arguments to handleVariantChange:", { attributeName, selectedOptions });
+      return;
+    }
+    
     const newSelections = {
       ...variantSelections,
-      [attributeName]: selectedOptions.map(option => option.value)
+      [attributeName]: selectedOptions.map(option => option?.value).filter(Boolean)
     };
     setVariantSelections(newSelections);
     
@@ -270,15 +294,18 @@ const ProductDetailsPage = ({ params }) => {
     // Show loading state
     setIsGeneratingCombinations(true);
     
-    // Add artificial delay to show loading state (remove in production)
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Generate new combinations
-    const newCombinations = generateCombinations(newSelections);
-    setVariantCombinations(newCombinations);
-    
-    // Hide loading state
-    setIsGeneratingCombinations(false);
+    try {
+      // Add artificial delay to show loading state (remove in production)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Generate new combinations
+      setVariantCombinations(generateCombinations(newSelections));
+    } catch (error) {
+      console.error("Error generating combinations:", error);
+    } finally {
+      // Hide loading state
+      setIsGeneratingCombinations(false);
+    }
   };
 
   // Handle combination value change
@@ -300,10 +327,10 @@ const ProductDetailsPage = ({ params }) => {
   const predefinedBrands = [
     { value: '', label: 'Select Brand', isDisabled: true },
     { value: 'generic', label: 'Generic Product' },
-    { value: 'brand1', label: 'Grand Brand 1' },
-    { value: 'brand2', label: 'Grand Brand 2' },
-    { value: 'brand3', label: 'Grand Brand 3' },
-    { value: 'brand4', label: 'Grand Brand 4' },
+    { value: 'samsung', label: 'Samsung' },
+    { value: 'apple', label: 'Apple' },
+    { value: 'nokia', label: 'Nokia' },
+    { value: 'mi', label: 'Mi' },
   ];
 
   // Handle brand document upload
@@ -387,63 +414,307 @@ const ProductDetailsPage = ({ params }) => {
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSaveAndNext = () => {
+  const handleSaveAndNext = async () => {
     if (!validateForm()) return;
     
-    // Here you would typically save the form data
-    // For this example, we'll just redirect to the next step
-    
-    // Placeholder for API call to save data
-    console.log("Submitting product details:", {
-      productId,
-      attributeValues,
-      mrpPrice,
-      wdrpPrice,
-      sellingPrice,
-      stockQty,
-      productWeight,
-      brand,
-      manufacturer,
-      packer,
-      categoryPath
-    });
-    
-    // Navigate to the next step
-    router.push(`/store-manage/inventory/${sellerid}/add/${productId}/shipping`);
+    try {
+      const session = await getSession();
+      
+      // Prepare the payload
+      const payload = {
+        productId: product?.product_id || productId,
+        categoryId: product?.category_id?._id,
+        
+        // Attributes as array of objects with detailed info
+        attributes: Object.entries(attributeValues).map(([attrName, attrValue]) => {
+          // Find the attribute by name - add null check for product.attributes
+          const attribute = product?.attributes?.find(attr => attr.name === attrName);
+          // Find option ID if it's a selection
+          let optionId = null;
+          if (attribute && attribute.options && attribute.options.length > 0) {
+            const option = attribute.options.find(opt => opt.value === attrValue);
+            if (option) optionId = option._id;
+          }
+          
+          return {
+            attributeId: attribute?._id,
+            name: attrName,
+            value: attrValue,
+            optionId: optionId
+          };
+        }),
+        
+        // Pricing in a nested object
+        pricing: {
+          mrp: parseFloat(mrpPrice) || 0,
+          selling_price: parseFloat(sellingPrice) || 0,
+          wdrp: parseFloat(wdrpPrice) || 0
+        },
+        
+        // Stock quantity if no variations
+        stock: !hasVariations ? parseInt(stockQty, 10) || 0 : null,
+        
+        // Product details
+        weight: parseFloat(productWeight) || null,
+        
+        // Brand info in a nested object
+        brand: {
+          name: brand,
+          manufacturer: manufacturer || null,
+          packer: packer || null,
+          // Keep existing document URL if document hasn't changed
+          documentUrl: brandDocument?.name?.includes('Existing document') 
+            ? product?.meta?.brand_details?.documentUrl 
+            : null // We'll upload new document separately if needed
+        },
+        
+        // Variations flag
+        hasVariations: hasVariations
+      };
+      
+      // Add variations if enabled
+      if (hasVariations && product?.attributes) {
+        payload.variations = {
+          // Include attribute IDs and option IDs for variations
+          attributes: Object.keys(variantSelections).map(attrName => {
+            const attribute = product.attributes.find(attr => attr?.name === attrName);
+            return {
+              attributeId: attribute?._id,
+              name: attrName,
+              values: variantSelections[attrName].map(value => {
+                const option = attribute?.options?.find(opt => opt.value === value);
+                return {
+                  optionId: option?._id,
+                  value: value
+                };
+              })
+            };
+          }),
+          combinations: variantCombinations.map(combo => {
+            // Extract variation attributes with their IDs
+            const variantData = {};
+            Object.entries(combo)
+              .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
+              .forEach(([attrName, value]) => {
+                const attribute = product.attributes.find(attr => attr?.name === attrName);
+                const option = attribute?.options?.find(opt => opt.value === value);
+                
+                variantData[attrName] = {
+                  attributeId: attribute?._id,
+                  optionId: option?._id,
+                  value: value
+                };
+              });
+            
+            return {
+              variant: variantData,
+              price: parseFloat(combo.price) || 0,
+              stock: parseInt(combo.quantity, 10) || 0,
+              imageUrl: combo.imageUrl || combo.image
+            };
+          })
+        };
+      }
+      
+      // Upload new brand document if provided
+      if (brandDocument && !brandDocument.name.includes('Existing document')) {
+        // Here you would implement the document upload logic
+        // This would typically involve creating a FormData object and sending it to your API
+        // or using S3 upload functionality if available
+        console.log('Would upload new brand document here');
+      }
+      
+      console.log('Updating product details with payload:', payload);
+      
+      // Send the update request
+      const response = await axiosInstance.put(
+        `/v1/seller/product/${productId}/details`,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        }
+      );
+      
+      if (response.data.success) {
+        console.log('Product details updated successfully');
+        // Navigate back to inventory listing or next step
+        router.push(`/store-manage/inventory/listing`);
+      } else {
+        console.error('Failed to update product details:', response.data.message);
+      }
+      
+    } catch (error) {
+      console.error('Error updating product details:', error);
+    }
   };
 
   // Add useEffect to fetch product details and generate pre-signed URLs
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
+        setLoading(true);
         const session = await getSession();
-        const response = await axiosInstance.get(`/v1/seller/product/${productId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${session.accessToken}`,
-            },
-          });
-
-        if (response.data.success) {
-          const productData = response.data.data.product;
-          setProduct(productData);
-          setCategoryPath(productData.category);
-
-          // Convert S3 URLs to our API URLs
-          if (productData.thumbnail_image) {
-            const thumbnailUrl = getApiImageUrl(productData.thumbnail_image);
-            if (thumbnailUrl) {
-              setImageUrls(prev => ({ ...prev, thumbnail: thumbnailUrl }));
+        
+        // FIRST: fetch the product structure with attribute definitions and options
+        const productResponse = await axiosInstance.get(`/v1/seller/product/${productId}`, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+        
+        if (!productResponse.data.success || !productResponse.data.data.product) {
+          console.error('Failed to fetch product data');
+          setLoading(false);
+          return;
+        }
+        
+        // Store the base product data (with attribute definitions)
+        const baseProductData = productResponse.data.data.product;
+        console.log("Base product data:", baseProductData);
+        setProduct(baseProductData);
+        
+        // SECOND: fetch product details with the actual values
+        const detailsResponse = await axiosInstance.get(`/v1/seller/product/${productId}/details`, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+        
+        if (!detailsResponse.data.success || !detailsResponse.data.data.product) {
+          console.error('Failed to fetch product details');
+          setLoading(false);
+          return;
+        }
+        
+        const detailsData = detailsResponse.data.data.product;
+        console.log("Product details data:", detailsData);
+        
+        // *** Process and set the combined data ***
+        
+        // Set category info
+        if (baseProductData.category) {
+          setCategoryPath(baseProductData.category.name);
+        }
+        
+        // Set meta attribute values from product details
+        if (detailsData.meta && detailsData.meta.attributes) {
+          const metaAttributesObj = {};
+          detailsData.meta.attributes.forEach(attr => {
+            if (attr && attr.name) {
+              metaAttributesObj[attr.name] = attr.value;
             }
-          }
-
-          if (productData.gallery_images && productData.gallery_images.length > 0) {
-            const galleryUrls = productData.gallery_images
-              .map(getApiImageUrl)
-              .filter(url => url);
-            setImageUrls(prev => ({ ...prev, gallery: galleryUrls }));
+          });
+          setAttributeValues(metaAttributesObj);
+        }
+        
+        // Set brand details from product details
+        if (detailsData.meta && detailsData.meta.brand_details) {
+          const brandDetails = detailsData.meta.brand_details;
+          setBrand(brandDetails.name || '');
+          setManufacturer(brandDetails.manufacturer || '');
+          setPacker(brandDetails.packer || '');
+          
+          // If there's a document URL but no file, set a flag that it exists
+          if (brandDetails.documentUrl) {
+            setBrandDocument({ name: 'Existing document (will be preserved if not changed)' });
           }
         }
+        
+        // Set weight
+        if (detailsData.meta && detailsData.meta.weight) {
+          setProductWeight(detailsData.meta.weight.toString());
+        }
+        
+        // Set variations flag
+        if (detailsData.meta && detailsData.meta.has_variations) {
+          setHasVariations(true);
+          
+          // Set variant selections
+          if (detailsData.variations && detailsData.variations.attributes) {
+            const variantSelectionsObj = {};
+            detailsData.variations.attributes.forEach(attr => {
+              if (attr && attr.name && Array.isArray(attr.values)) {
+                variantSelectionsObj[attr.name] = attr.values.map(val => val.value);
+              }
+            });
+            setVariantSelections(variantSelectionsObj);
+          }
+          
+          // Set combinations
+          if (detailsData.combinations && detailsData.combinations.length > 0) {
+            const formattedCombinations = detailsData.combinations.map(combo => {
+              if (!combo || !combo.variant) return null;
+              
+              const variantData = {};
+              
+              // Extract variant attributes
+              Object.entries(combo.variant).forEach(([attrName, attrData]) => {
+                if (attrData && attrData.value) {
+                  variantData[attrName] = attrData.value;
+                }
+              });
+              
+              const price = combo.price?.$numberDecimal || combo.price || '';
+              const stock = combo.stock?.toString() || '';
+              
+              return {
+                ...variantData,
+                price: price,
+                quantity: stock,
+                image: combo.imageUrl?.[0] || null,
+              
+              };
+            }).filter(Boolean);
+            
+            setVariantCombinations(formattedCombinations);
+          }
+        } else {
+          // If no variations, set simple product pricing and stock
+          if (detailsData.price) {
+            setMrpPrice(detailsData.price.mrp?.$numberDecimal || '');
+            setSellingPrice(detailsData.price.selling_price?.$numberDecimal || '');
+            setWdrpPrice(detailsData.price.wdrp?.$numberDecimal || '');
+          }
+          if (detailsData.meta) {
+            setStockQty(detailsData.meta.stock?.toString() || '');
+          }
+        }
+        
+        // Convert S3 URLs to our API URLs for displaying images
+        // 1. For base product images
+        if (baseProductData.thumbnail_image) {
+          const thumbnailUrl = getApiImageUrl(baseProductData.thumbnail_image);
+          if (thumbnailUrl) {
+            setImageUrls(prev => ({ ...prev, thumbnail: thumbnailUrl }));
+          }
+        }
+        
+        if (baseProductData.gallery_images && Array.isArray(baseProductData.gallery_images)) {
+          const galleryUrls = baseProductData.gallery_images
+            .map(getApiImageUrl)
+            .filter(url => url);
+          setImageUrls(prev => ({ ...prev, gallery: galleryUrls }));
+        }
+        
+        // 2. Alternatively, from details data if available
+        if (!baseProductData.thumbnail_image && detailsData.images?.thumbnail_image) {
+          const thumbnailUrl = getApiImageUrl(detailsData.images.thumbnail_image);
+          if (thumbnailUrl) {
+            setImageUrls(prev => ({ ...prev, thumbnail: thumbnailUrl }));
+          }
+        }
+        
+        if ((!baseProductData.gallery_images || baseProductData.gallery_images.length === 0) && 
+            detailsData.images?.gallery_images && Array.isArray(detailsData.images.gallery_images)) {
+          const galleryUrls = detailsData.images.gallery_images
+            .map(getApiImageUrl)
+            .filter(url => url);
+          setImageUrls(prev => ({ ...prev, gallery: galleryUrls }));
+        }
+        
       } catch (error) {
         console.error('Error fetching product details:', error);
       } finally {
@@ -454,8 +725,55 @@ const ProductDetailsPage = ({ params }) => {
     fetchProductDetails();
   }, [productId]);
 
+  // Function to safely render variant attributes
+  const renderVariantAttributes = () => {
+    if (!product || !product.attributes) {
+      return <div className="col-span-2 p-3 bg-gray-50 text-gray-500 rounded">Loading variant attributes...</div>;
+    }
+    
+    const variantAttributes = product.attributes.filter(attr => attr && attr.type === 'variant');
+    
+    if (variantAttributes.length === 0) {
+      return <div className="col-span-2 p-3 bg-gray-50 text-gray-500">No variant attributes found</div>;
+    }
+    
+    return variantAttributes.map((attribute) => (
+      <div key={attribute._id || `variant-${attribute.name}`} className="col-span-1">
+        <label htmlFor={attribute.name} className="block font-bold text-sm text-gray-700 mb-1">
+          {attribute.name} {attribute.isRequired && '*'}
+        </label>
+        <Select
+          id={attribute.name}
+          isMulti
+          options={formatVariantOptions(attribute)}
+          value={(() => {
+            try {
+              if (!Array.isArray(variantSelections[attribute.name])) return [];
+              return formatVariantOptions(attribute)
+                .filter(option => 
+                  variantSelections[attribute.name].includes(option.value)
+                );
+            } catch (error) {
+              console.error("Error rendering variant selection:", error);
+              return [];
+            }
+          })()}
+          onChange={(selected) => handleVariantChange(attribute.name, selected || [])}
+          styles={customStyles}
+          className="basic-multi-select"
+          classNamePrefix="select"
+          placeholder={`Select ${attribute.name}`}
+        />
+        {errors[attribute.name] && (
+          <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+        )}
+      </div>
+    ));
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      
       {/* Category Path Display */}
       {loading ? (
         <CategoryHierarchySkeleton />
@@ -515,70 +833,75 @@ const ProductDetailsPage = ({ params }) => {
                         </p>
                       </div>
                       
-                      {/* Meta Attributes */}
-                      {product?.attributes?.filter(attr => attr.type === 'meta').map((attribute) => (
-                        <div key={attribute._id} className="col-span-1">
-                          <label htmlFor={attribute.name} className="block font-bold text-sm text-gray-700 mb-1">
-                            {attribute.name} {attribute.isRequired && '*'}
-                          </label>
-                          {attribute.options && attribute.options.length > 0 ? (
-                            <>
-                              <Select
-                                id={attribute.name}
-                                options={attribute.options.map(option => ({
-                                  value: option.value,
-                                  label: option.name
-                                }))}
-                                value={attributeValues[attribute.name] ? {
-                                  value: attributeValues[attribute.name],
-                                  label: attribute.options.find(opt => opt.value === attributeValues[attribute.name])?.name
-                                } : null}
-                                onChange={(selectedOption) => handleAttributeChange(attribute.name, selectedOption?.value || '')}
-                                className="basic-select"
-                                classNamePrefix="select"
-                                isSearchable={true}
-                                placeholder={`Search ${attribute.name}...`}
-                                isClearable={!attribute.isRequired}
-                                styles={{
-                                  control: (base) => ({
-                                    ...base,
-                                    borderColor: errors[attribute.name] ? '#EF4444' : '#111827',
-                                    '&:hover': {
-                                      borderColor: errors[attribute.name] ? '#EF4444' : '#111827'
-                                    }
-                                  }),
-                                  placeholder: (base) => ({
-                                    ...base,
-                                    color: '#6B7280',
-                                  }),
-                                  menu: (base) => ({
-                                    ...base,
-                                    zIndex: 50
-                                  })
-                                }}
-                              />
-                              {errors[attribute.name] && (
-                                <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+                      {/* Meta Attributes - Added safety checks */}
+                      {product && product.attributes ? 
+                        product.attributes
+                          .filter(attr => attr && attr.type === 'meta')
+                          .map((attribute) => (
+                            <div key={attribute._id || attribute.name} className="col-span-1">
+                              <label htmlFor={attribute.name} className="block font-bold text-sm text-gray-700 mb-1">
+                                {attribute.name} {attribute.isRequired && '*'}
+                              </label>
+                              {attribute.options && Array.isArray(attribute.options) && attribute.options.length > 0 ? (
+                                <>
+                                  <Select
+                                    id={attribute.name}
+                                    options={attribute.options.map(option => ({
+                                      value: option.value,
+                                      label: option.name
+                                    }))}
+                                    value={attributeValues[attribute.name] ? {
+                                      value: attributeValues[attribute.name],
+                                      label: attribute.options.find(opt => opt && opt.value === attributeValues[attribute.name])?.name
+                                    } : null}
+                                    onChange={(selectedOption) => handleAttributeChange(attribute.name, selectedOption?.value || '')}
+                                    className="basic-select"
+                                    classNamePrefix="select"
+                                    isSearchable={true}
+                                    placeholder={`Search ${attribute.name}...`}
+                                    isClearable={!attribute.isRequired}
+                                    styles={{
+                                      control: (base) => ({
+                                        ...base,
+                                        borderColor: errors[attribute.name] ? '#EF4444' : '#111827',
+                                        '&:hover': {
+                                          borderColor: errors[attribute.name] ? '#EF4444' : '#111827'
+                                        }
+                                      }),
+                                      placeholder: (base) => ({
+                                        ...base,
+                                        color: '#6B7280',
+                                      }),
+                                      menu: (base) => ({
+                                        ...base,
+                                        zIndex: 50
+                                      })
+                                    }}
+                                  />
+                                  {errors[attribute.name] && (
+                                    <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    type="text"
+                                    id={attribute.name}
+                                    value={attributeValues[attribute.name] || ''}
+                                    onChange={(e) => handleAttributeChange(attribute.name, e.target.value)}
+                                    className={`mt-1 block w-full border ${errors[attribute.name] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
+                                    placeholder={`Enter ${attribute.name}`}
+                                    required={attribute.isRequired}
+                                  />
+                                  {errors[attribute.name] && (
+                                    <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
+                                  )}
+                                </>
                               )}
-                            </>
-                          ) : (
-                            <>
-                              <input
-                                type="text"
-                                id={attribute.name}
-                                value={attributeValues[attribute.name] || ''}
-                                onChange={(e) => handleAttributeChange(attribute.name, e.target.value)}
-                                className={`mt-1 block w-full border ${errors[attribute.name] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                                placeholder={`Enter ${attribute.name}`}
-                                required={attribute.isRequired}
-                              />
-                              {errors[attribute.name] && (
-                                <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      ))}
+                            </div>
+                          ))
+                        : <div className="col-span-2 p-4 bg-gray-50 text-gray-500">Loading product attributes...</div>
+                      }
                       
                       {/* Brand and Manufacturer Section */}
                       <div className="col-span-2 bg-gray-100 p-4 mt-6">
@@ -703,75 +1026,8 @@ const ProductDetailsPage = ({ params }) => {
                         </div>
                       </div>
 
-                      {!hasVariations ? (
-                        <>
-                          {/* Base Pricing Section - Only show if no variations */}
-                          <div className="col-span-2 bg-gray-100 p-4">
-                            <h4 className="font-medium text-gray-800">Base Pricing & Inventory</h4>
-                            <p className="text-sm text-gray-600">
-                              Set your product&apos;s base pricing and stock information.
-                            </p>
-                          </div>
-                          
-                          {/* MRP Price */}
-                          <div className="col-span-1">
-                            <label htmlFor="mrpPrice" className="block font-bold text-sm text-gray-700 mb-1">
-                              MRP Price (₹)*
-                            </label>
-                            <div className="relative shadow-sm">
-                              <input
-                                type="number"
-                                id="mrpPrice"
-                                value={mrpPrice}
-                                onChange={(e) => setMrpPrice(e.target.value)}
-                                className={`mt-1 block w-full pl-1 border ${errors.mrpPrice ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            {errors.mrpPrice && <p className="mt-1 text-sm text-red-600">{errors.mrpPrice}</p>}
-                          </div>
-                          
-                          {/* Selling Price */}
-                          <div className="col-span-1">
-                            <label htmlFor="sellingPrice" className="block font-bold text-sm text-gray-700 mb-1">
-                              Selling Price (₹)*
-                            </label>
-                            <div className="relative shadow-sm">
-                              <input
-                                type="number"
-                                id="sellingPrice"
-                                value={sellingPrice}
-                                onChange={(e) => setSellingPrice(e.target.value)}
-                                className={`mt-1 block w-full pl-1 border ${errors.sellingPrice ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            {errors.sellingPrice && <p className="mt-1 text-sm text-red-600">{errors.sellingPrice}</p>}
-                          </div>
-
-                          {/* Stock Quantity */}
-                          <div className="col-span-1">
-                            <label htmlFor="stockQty" className="block font-bold text-sm text-gray-700 mb-1">
-                              Stock Quantity*
-                            </label>
-                            <input
-                              type="number"
-                              id="stockQty"
-                              value={stockQty}
-                              onChange={(e) => setStockQty(e.target.value)}
-                              className={`mt-1 block w-full border ${errors.stockQty ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2`}
-                              placeholder="0"
-                              min="0"
-                              step="1"
-                            />
-                            {errors.stockQty && <p className="mt-1 text-sm text-red-600">{errors.stockQty}</p>}
-                          </div>
-                        </>
-                      ) : (
+                      {/* Use our safe render function for variant attributes */}
+                      {hasVariations && (
                         <>
                           {/* Base MRP Price - Always show */}
                           <div className="col-span-2">
@@ -793,163 +1049,141 @@ const ProductDetailsPage = ({ params }) => {
                             {errors.mrpPrice && <p className="mt-1 text-sm text-red-600">{errors.mrpPrice}</p>}
                           </div>
 
-                          {/* Variant Attributes */}
-                          {product?.attributes?.filter(attr => attr.type === 'variant').map((attribute) => (
-                            <div key={attribute._id} className="col-span-1">
-                              <label htmlFor={attribute.name} className="block font-bold text-sm text-gray-700 mb-1">
-                                {attribute.name} {attribute.isRequired && '*'}
-                              </label>
-                              <Select
-                                id={attribute.name}
-                                isMulti
-                                options={formatVariantOptions(attribute)}
-                                value={formatVariantOptions(attribute).filter(option => 
-                                  variantSelections[attribute.name]?.includes(option.value)
-                                )}
-                                onChange={(selected) => handleVariantChange(attribute.name, selected || [])}
-                                styles={customStyles}
-                                className="basic-multi-select"
-                                classNamePrefix="select"
-                                placeholder={`Select ${attribute.name}`}
-                              />
-                              {errors[attribute.name] && (
-                                <p className="mt-1 text-sm text-red-600">{errors[attribute.name]}</p>
-                              )}
-                            </div>
-                          ))}
+                          {/* Variant Attributes - Using our safe render function */}
+                          {renderVariantAttributes()}
+                        </>
+                      )}
 
-                          {/* Combinations Table */}
-                          {(variantCombinations.length > 0 || isGeneratingCombinations) && (
-                            <div className="col-span-2 mt-6">
-                              <h4 className="font-medium text-gray-800 mb-4">Product Variations</h4>
-                              {isGeneratingCombinations ? (
-                                <div className="py-8">
-                                  <LoadingSpinner />
-                                </div>
-                              ) : (
-                                <div className="overflow-x-auto">
-                                  <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                      <tr>
-                                        {Object.keys(variantCombinations[0])
-                                          .filter(key => key !== 'price' && key !== 'quantity' && key !== 'image')
-                                          .map(attr => (
-                                            <th key={attr} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                              {attr}
-                                            </th>
-                                          ))}
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                          Price
+                      {/* Combinations Table */}
+                      {(variantCombinations.length > 0 || isGeneratingCombinations) && (
+                        <div className="col-span-2 mt-6">
+                          <h4 className="font-medium text-gray-800 mb-4">Product Variations</h4>
+                          {isGeneratingCombinations ? (
+                            <div className="py-8">
+                              <LoadingSpinner />
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    {Object.keys(variantCombinations[0])
+                                      .filter(key => key !== 'price' && key !== 'quantity' && key !== 'image')
+                                      .map(attr => (
+                                        <th key={attr} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                          {attr}
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                          Quantity
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                          Image
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                          Actions
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                      {variantCombinations.map((combination, index) => (
-                                        <tr key={index}>
-                                          {Object.entries(combination)
-                                            .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
-                                            .map(([attr, value]) => (
-                                              <td key={attr} className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                  {attr.toLowerCase() === 'color' && (
-                                                    <div 
-                                                      className="w-4 h-4 rounded border border-gray-200" 
-                                                      style={{ backgroundColor: value }}
-                                                    />
-                                                  )}
-                                                  <span className="text-sm text-gray-500">
-                                                    {product.attributes
-                                                      .find(a => a.name.toLowerCase() === attr.toLowerCase())
-                                                      ?.options.find(o => o.value === value)?.name || value}
-                                                  </span>
-                                                </div>
-                                              </td>
-                                            ))}
-                                          <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                              <input
-                                                type="number"
-                                                value={combination.price}
-                                                onChange={(e) => handleCombinationChange(index, 'price', e.target.value)}
-                                                className={`block w-full border ${errors[`combination_${index}_price`] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 text-sm p-2`}
-                                                placeholder="Enter price"
-                                              />
-                                              {errors[`combination_${index}_price`] && (
-                                                <p className="mt-1 text-sm text-red-600">{errors[`combination_${index}_price`]}</p>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                              <input
-                                                type="number"
-                                                value={combination.quantity}
-                                                onChange={(e) => handleCombinationChange(index, 'quantity', e.target.value)}
-                                                className={`block w-full border ${errors[`combination_${index}_quantity`] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 text-sm p-2`}
-                                                placeholder="Enter quantity"
-                                              />
-                                              {errors[`combination_${index}_quantity`] && (
-                                                <p className="mt-1 text-sm text-red-600">{errors[`combination_${index}_quantity`]}</p>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="px-6 py-4 whitespace-nowrap">
-                                            <input
-                                              type="file"
-                                              accept="image/*"
-                                              onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                  const imageUrl = URL.createObjectURL(file);
-                                                  handleCombinationChange(index, 'image', imageUrl);
-                                                }
-                                              }}
-                                              className="hidden"
-                                              id={`image-upload-${index}`}
-                                            />
-                                            <label
-                                              htmlFor={`image-upload-${index}`}
-                                              className="cursor-pointer"
-                                            >
-                                              {combination.image ? (
-                                                <img
-                                                  src={combination.image}
-                                                  alt="Variation"
-                                                  className="w-12 h-12 object-cover rounded"
-                                                />
-                                              ) : (
-                                                <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
-                                                  Upload
-                                                </div>
-                                              )}
-                                            </label>
-                                          </td>
-                                          <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                              onClick={() => handleDeleteCombination(index)}
-                                              className="text-red-600 hover:text-red-900"
-                                            >
-                                              Delete
-                                            </button>
-                                          </td>
-                                        </tr>
                                       ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                      Price
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                      Quantity
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                      Image
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                      Actions
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {variantCombinations.map((combination, index) => (
+                                    <tr key={index}>
+                                      {Object.entries(combination)
+                                        .filter(([key]) => key !== 'price' && key !== 'quantity' && key !== 'image')
+                                        .map(([attr, value]) => (
+                                          <td key={attr} className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                              {attr.toLowerCase() === 'color' && (
+                                                <div 
+                                                  className="w-4 h-4 rounded border border-gray-200" 
+                                                  style={{ backgroundColor: value }}
+                                                />
+                                              )}
+                                              <span className="text-sm text-gray-500">
+                                                {product.attributes
+                                                  .find(a => a.name.toLowerCase() === attr.toLowerCase())
+                                                  ?.options.find(o => o.value === value)?.name || value}
+                                              </span>
+                                            </div>
+                                          </td>
+                                        ))}
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                          <input
+                                            type="number"
+                                            value={combination.price}
+                                            onChange={(e) => handleCombinationChange(index, 'price', e.target.value)}
+                                            className={`block w-full border ${errors[`combination_${index}_price`] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 text-sm p-2`}
+                                            placeholder="Enter price"
+                                          />
+                                          {errors[`combination_${index}_price`] && (
+                                            <p className="mt-1 text-sm text-red-600">{errors[`combination_${index}_price`]}</p>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div>
+                                          <input
+                                            type="number"
+                                            value={combination.quantity}
+                                            onChange={(e) => handleCombinationChange(index, 'quantity', e.target.value)}
+                                            className={`block w-full border ${errors[`combination_${index}_quantity`] ? 'border-red-500' : 'border-gray-900'} focus:border-blue-500 focus:ring-blue-500 text-sm p-2`}
+                                            placeholder="Enter quantity"
+                                          />
+                                          {errors[`combination_${index}_quantity`] && (
+                                            <p className="mt-1 text-sm text-red-600">{errors[`combination_${index}_quantity`]}</p>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              const imageUrl = URL.createObjectURL(file);
+                                              handleCombinationChange(index, 'image', imageUrl);
+                                            }
+                                          }}
+                                          className="hidden"
+                                          id={`image-upload-${index}`}
+                                        />
+                                        <label
+                                          htmlFor={`image-upload-${index}`}
+                                          className="cursor-pointer"
+                                        >
+                                          {combination.image ? (
+                                            <S3Image
+                                              src={combination.image}
+                                              alt="Variation"
+                                              className="w-12 h-12 object-cover rounded"
+                                            />
+                                          ) : (
+                                            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
+                                              Upload
+                                            </div>
+                                          )}
+                                        </label>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                          onClick={() => handleDeleteCombination(index)}
+                                          className="text-red-600 hover:text-red-900"
+                                        >
+                                          Delete
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </div>
                           )}
-                        </>
+                        </div>
                       )}
 
                       {/* Product Weight - Always show at the end */}
