@@ -10,7 +10,10 @@ import { useSession } from 'next-auth/react';
 
 // Product Details Modal Component
 const ProductDetailsModal = ({ product, onClose }) => {
-  if (!product) return null;
+ 
+  
+  // Log product structure
+
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity overflow-y-auto">
@@ -25,169 +28,124 @@ const ProductDetailsModal = ({ product, onClose }) => {
         </button>
         
         <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {product.descriptions?.[0]?.title || 'No Title Available'}
+          </h2>
+          
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Left column - Images */}
-            <div className="w-full md:w-1/3">
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Product Images</h3>
-                <div className="bg-gray-100 rounded-lg p-2">
-                  <div className="mb-4">
-                    {product.images?.thumbnail_image ? (
-                      <S3Image
-                        src={product.images.thumbnail_image}
-                        alt="Product thumbnail"
-                        width={300}
-                        height={300}
-                        className="w-full h-auto rounded-lg"
-                      />
-                    ) : (
-                      <div className="bg-gray-200 rounded-lg w-full h-40 flex items-center justify-center text-gray-500">No thumbnail</div>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-2">
-                    {product.images?.gallery_images?.map((img, index) => (
-                      <S3Image
-                        key={index}
-                        src={img}
-                        alt={`Gallery image ${index + 1}`}
-                        width={100}
-                        height={100}
-                        className="w-full h-auto rounded"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right column - Details */}
-            <div className="w-full md:w-2/3">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                {product.descriptions?.[0]?.title || 'No Title Available'}
-              </h2>
-              
+            {/* Product Information */}
+            <div className="w-full">
+              {/* Product Type and Status */}
               <div className="mb-4">
                 <div className="flex items-center mb-2">
                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {product.status?.toUpperCase()}
+                    {product.status?.toUpperCase() || 'STATUS UNKNOWN'}
                   </span>
                   <span className="ml-2 text-sm text-gray-500">
-                    SKU: {product.unified_sku}
+                    Type: {product.type || 'Not specified'}
                   </span>
+                  {product.unified_sku && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      SKU: {product.unified_sku}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-600">
                   {product.descriptions?.[0]?.description || 'No description available'}
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Product Details</h3>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="mb-2">
-                      <span className="text-xs text-gray-500">Category:</span>
-                      <p className="text-sm font-medium">{product.category_id?.name || 'N/A'}</p>
+              {/* Product Images */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Product Images</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {product.images?.thumbnail_image ? (
+                    <div className="aspect-square relative bg-gray-100 rounded">
+                      <S3Image
+                        src={product.images.thumbnail_image}
+                        alt="Thumbnail"
+                        width={200}
+                        height={200}
+                        className="w-full h-full object-contain rounded"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                        Thumbnail
+                      </div>
                     </div>
-                    <div className="mb-2">
-                      <span className="text-xs text-gray-500">Product Type:</span>
-                      <p className="text-sm font-medium">{product.type || 'N/A'}</p>
+                  ) : null}
+                  
+                  {product.images?.gallery_images?.map((img, index) => (
+                    <div key={index} className="aspect-square relative bg-gray-100 rounded">
+                      <S3Image
+                        src={img}
+                        alt={`Gallery image ${index + 1}`}
+                        width={200}
+                        height={200}
+                        className="w-full h-full object-contain rounded"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                        Gallery {index + 1}
+                      </div>
                     </div>
-                    <div className="mb-2">
-                      <span className="text-xs text-gray-500">Condition:</span>
-                      <p className="text-sm font-medium">{product.condition || 'N/A'}</p>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Basic Product Details */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Basic Details</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <span className="text-xs text-gray-500">Category:</span>
+                    <p className="text-sm font-medium">{product.category_id?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Condition:</span>
+                    <p className="text-sm font-medium">{product.condition || 'N/A'}</p>
+                  </div>
+                  {product.meta?.brand_details?.name && (
+                    <div>
+                      <span className="text-xs text-gray-500">Brand:</span>
+                      <p className="text-sm font-medium">{product.meta.brand_details.name}</p>
                     </div>
+                  )}
+                  {product.createdAt && (
                     <div>
                       <span className="text-xs text-gray-500">Created:</span>
                       <p className="text-sm font-medium">
-                        {new Date(product.createdAt).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
+                        {new Date(product.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Brand Information</h3>
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="mb-2">
-                      <span className="text-xs text-gray-500">Brand:</span>
-                      <p className="text-sm font-medium">{product.meta?.brand_details?.name || 'N/A'}</p>
-                    </div>
-                    <div className="mb-2">
-                      <span className="text-xs text-gray-500">Manufacturer:</span>
-                      <p className="text-sm font-medium">{product.meta?.brand_details?.manufacturer || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500">Weight:</span>
-                      <p className="text-sm font-medium">{product.meta?.weight ? `${product.meta.weight}g` : 'N/A'}</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
               
-              {/* Attributes */}
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Attributes</h3>
-                <div className="bg-gray-100 rounded-lg p-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {product.meta?.attributes?.map((attr, index) => (
-                      <div key={index} className="flex flex-col">
-                        <span className="text-xs text-gray-500">{attr.name}:</span>
-                        <p className="text-sm font-medium">{attr.value}</p>
+              {/* Price Information */}
+              {product.price && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Price Information</h3>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    {product.price.selling_price && (
+                      <div className="mb-2">
+                        <span className="text-xs text-gray-500">Selling Price:</span>
+                        <p className="text-lg font-bold text-green-700">
+                          ₹{product.price.selling_price.$numberDecimal || product.price.selling_price}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Variations */}
-              {product.has_variations && product.combinations?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Variations</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse text-sm text-gray-600">
-                      <thead className="bg-gray-100 text-xs uppercase text-gray-700">
-                        <tr>
-                          {Object.keys(product.combinations[0].variant).map((key) => (
-                            <th key={key} className="px-4 py-2 text-left">{key}</th>
-                          ))}
-                          <th className="px-4 py-2 text-left">Price</th>
-                          <th className="px-4 py-2 text-left">Stock</th>
-                          <th className="px-4 py-2 text-left">SKU</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {product.combinations.map((combo, index) => (
-                          <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                            {Object.entries(combo.variant).map(([key, data]) => (
-                              <td key={key} className="px-4 py-2">
-                                {key.toLowerCase() === 'color' ? (
-                                  <div className="flex items-center">
-                                    <div 
-                                      className="w-4 h-4 rounded-full mr-2" 
-                                      style={{ backgroundColor: data.value }}
-                                    ></div>
-                                    {data.value}
-                                  </div>
-                                ) : (
-                                  data.value
-                                )}
-                              </td>
-                            ))}
-                            <td className="px-4 py-2">₹{combo.price.$numberDecimal}</td>
-                            <td className="px-4 py-2">{combo.stock}</td>
-                            <td className="px-4 py-2">{combo.sku}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    )}
+                    {product.price.mrp && (
+                      <div>
+                        <span className="text-xs text-gray-500">MRP:</span>
+                        <p className="text-sm line-through text-gray-500">
+                          ₹{product.price.mrp.$numberDecimal || product.price.mrp}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+              
+
             </div>
           </div>
         </div>
@@ -208,6 +166,7 @@ export default function ProductListing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [statistics, setStatistics] = useState({
     totalProducts: 0,
     liveProducts: 0,
@@ -256,20 +215,40 @@ export default function ProductListing() {
   const fetchProductDetails = async (productId) => {
     try {
       setProductDetailsLoading(true);
+      setErrorMessage(null); // Clear any previous errors
       const session = await getSession();
+
+      // Basic validation
+      if (!productId) {
+        const errorMsg = "Invalid product ID";
+        setErrorMessage(errorMsg);
+        return;
+      }
+      
+      
       const response = await axiosInstance.get(`/v1/seller/product/${productId}/details`, {
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
         },
       });
       
-      if (response.data.success) {
+      // Alert the structure of the response
+      
+      
+      if (response.data.success && response.data.data.product) {
+        
         setSelectedProduct(response.data.data.product);
       } else {
-        console.error('Failed to fetch product details:', response.data.message);
+        const errorMsg = "Failed to fetch product details: " + (response.data.message || "No product data received");
+        setErrorMessage(errorMsg);
+        console.error(errorMsg);
+        
       }
     } catch (error) {
-      console.error('Error fetching product details:', error);
+      const errorMsg = "Error fetching product details: " + (error.message || "Unknown error");
+      setErrorMessage(errorMsg);
+      console.error(errorMsg);
+      window.alert(errorMsg);
     } finally {
       setProductDetailsLoading(false);
     }
@@ -277,8 +256,39 @@ export default function ProductListing() {
 
   // Function to handle opening the details modal
   const handleViewProduct = async (productId) => {
-    await fetchProductDetails(productId);
-    setOpenDropdown(null); // Close dropdown after selecting
+    try {
+      setErrorMessage(null); // Clear any previous errors
+      
+      if (!productId) {
+        const errorMsg = "No product ID provided for viewing";
+        setErrorMessage(errorMsg);
+        return;
+      }
+      
+      // Always fetch fresh data from API regardless of product type
+      setSelectedProduct(null); // Reset before fetching
+      setProductDetailsLoading(true);
+      
+      const session = await getSession();
+      const response = await axiosInstance.get(`/v1/seller/product/${productId}/details`, {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+      
+      if (response.data.success && response.data.data.product) {
+        setSelectedProduct(response.data.data.product);
+      } else {
+        const errorMsg = "Failed to fetch product details: " + (response.data.message || "No product data received");
+        setErrorMessage(errorMsg);
+      }
+    } catch (err) {
+      const errorMsg = "Error in handleViewProduct: " + (err.message || "Unknown error");
+      setErrorMessage(errorMsg);
+    } finally {
+      setProductDetailsLoading(false);
+      setOpenDropdown(null); // Close dropdown after selecting
+    }
   };
 
   useEffect(() => {
@@ -310,6 +320,22 @@ export default function ProductListing() {
 
   return (
     <div className="p-3 max-w-7xl mx-auto">
+      {/* Error Message Display */}
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{errorMessage}</span>
+          <button 
+            className="absolute top-0 right-0 px-4 py-3" 
+            onClick={() => setErrorMessage(null)}
+          >
+            <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+              <path d="M10 8.586L2.929 1.515 1.515 2.929 8.586 10l-7.071 7.071 1.414 1.414L10 11.414l7.071 7.071 1.414-1.414L11.414 10l7.071-7.071-1.414-1.414L10 8.586z"/>
+            </svg>
+          </button>
+        </div>
+      )}
+    
       {/* Header with Stats */}
       <div className="flex justify-between items-center mb-4 border border-gray-300 bg-white shadow rounded-lg px-3 py-2">
         <div className='flex'>
@@ -435,11 +461,26 @@ export default function ProductListing() {
             </thead>
             <tbody>
               {filteredProducts.map((product) => (
-                <tr key={product._id} className="border-t border-gray-200 hover:bg-gray-50">
+                <tr 
+                  key={product._id} 
+                  className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleViewProduct(product.product_id);
+                  }}
+                >
                   <td className="p-2 border border-gray-200">
                     <div className="flex items-center">
                       <div className="relative group">
-                        <div className="h-15 w-15 rounded-lg overflow-hidden cursor-pointer" onClick={() => setSelectedImage(product.images[0]?.thumbnail_image)}>
+                        <div className="h-15 w-15 rounded-lg overflow-hidden cursor-pointer" onClick={() => {
+                          if(product.images && product.images[0] && product.images[0].thumbnail_image) {
+                            // Display full-size image in the image modal
+                            setSelectedImage(product.images[0]?.thumbnail_image);
+                          } else if (product.product_id) {
+                            // If no image is available but we have the product ID, open the product details modal
+                            handleViewProduct(product.product_id);
+                          }
+                        }}>
                           <S3Image
                             src={product.images[0]?.thumbnail_image}
                             alt={product.descriptions[0]?.title}
@@ -455,7 +496,13 @@ export default function ProductListing() {
                         </div>
                       </div>
                       <div className="ml-4 max-w-[calc(100%-80px)]">
-                        <div className="text-sm font-medium text-gray-900 truncate">
+                        <div 
+                          className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleViewProduct(product.product_id);
+                          }}
+                        >
                           {product.descriptions[0]?.title.split(' ').slice(0, 4).join(' ')}
                           {product.descriptions[0]?.title.split(' ').length > 4 ? '...' : ''}
                         </div>
@@ -493,57 +540,66 @@ export default function ProductListing() {
                   <td className="p-2 text-gray-900 truncate border border-gray-200">{product.price ?? 'N/A'} / {product.quantity ?? 'N/A'}</td>
                   <td className="p-2 text-gray-900 truncate border border-gray-200">{product.unified_sku}</td>
                   <td className="p-2 relative">
-                      <div ref={dropdownRef} className="relative inline-block text-left">
-                        <button
-                          onClick={() => handleDropdownClick(product.product_id)}
-                          className="p-1 rounded hover:bg-gray-100 focus:outline-none"
-                        >
-                          <Icon icon="mdi:dots-vertical" width="20" height="20" />
-                        </button>
+                      <div className="flex items-center space-x-2">
+                        
+                        {/* Dropdown button */}
+                        <div ref={dropdownRef} className="relative inline-block text-left">
+                          <button
+                            onClick={() => handleDropdownClick(product.product_id)}
+                            className="p-1 rounded hover:bg-gray-100 focus:outline-none"
+                          >
+                            <Icon icon="mdi:dots-vertical" width="20" height="20" />
+                          </button>
 
-                        {openDropdown === product.product_id && (
-                          <div className="absolute left-0 z-10 mt-2 w-40 bg-white shadow-lg ring-1 border border-gray-200 ring-opacity-9 focus:outline-none">
-                              
-                            <div className="text-sm text-gray-700">
-                              {product.status === 'published' && (
-                                <>
-                                    <Link
-                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
-                                      className="block px-4 py-2 hover:bg-gray-100"
-                                    onClick={() => setOpenDropdown(null)}
-                                    >
-                                    Edit
-                                  </Link>
-                               
-                                    <Link
-                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
-                                      className="block px-4 py-2 hover:bg-gray-100"
-                                    onClick={() => setOpenDropdown(null)}
-                                    >
-                                    Manage Inventory
-                                  </Link>
-                                    <Link
-                                      href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
-                                      className="block px-4 py-2 hover:bg-gray-100"
-                                    onClick={() => setOpenDropdown(null)}
-                                    >
-                                    Update Price
-                                  </Link>
+                          {openDropdown === product.product_id && (
+                            <div className="absolute left-0 z-10 mt-2 w-40 bg-white shadow-lg ring-1 border border-gray-200 ring-opacity-9 focus:outline-none">
+                                
+                              <div className="text-sm text-gray-700">
+                                {product.status === 'published' && (
+                                  <>
+                                      <Link
+                                        href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                        onClick={() => setOpenDropdown(null)}
+                                      >
+                                        Edit
+                                      </Link>
+                                 
+                                      <Link
+                                        href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                        onClick={() => setOpenDropdown(null)}
+                                      >
+                                        Manage Inventory
+                                      </Link>
+                                      <Link
+                                        href={`/store-manage/inventory/${btoa(sellerId)}/edit/${product.product_id}`}
+                                        className="block px-4 py-2 hover:bg-gray-100"
+                                        onClick={() => setOpenDropdown(null)}
+                                      >
+                                        Update Price
+                                      </Link>
 
 
-                                  </>
-                              )}
+                                    </>
+                                )}
 
-                              <a
-                                onClick={() => handleViewProduct(product.product_id)}
-                                className="block px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                              >
-                                View product
-                              </a>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleViewProduct(product.product_id);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  View product
+                                </button>
+                              </div>
 
-                          </div>
-                        )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                 </tr>
@@ -553,13 +609,13 @@ export default function ProductListing() {
         )}
       </div>
 
-        {/* Image Popup */}
+        {/* Image Popup with View Product Details button */}
         {selectedImage && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
             onClick={() => setSelectedImage(null)}
           >
-            <div className="relative max-w-4xl  p-4 overflow-auto">
+            <div className="relative max-w-4xl p-4 overflow-auto" onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => setSelectedImage(null)}
                 className="absolute top-2 right-2 text-white hover:text-gray-300 focus:outline-none"
@@ -568,7 +624,7 @@ export default function ProductListing() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <div className="max-w-full max-h-full overflow-auto flex justify-center items-center">
+              <div className="max-w-full max-h-full overflow-auto flex flex-col justify-center items-center">
                 <S3Image
                   src={selectedImage}
                   alt="Full size product image"
@@ -576,18 +632,48 @@ export default function ProductListing() {
                   height={800}
                   className="object-contain max-h-full max-w-full position-initial" // Make sure the image is contained within the container
                 />
+                
+                {/* Add view product details button */}
+                <div className="mt-4">
+                  <button 
+                    onClick={() => {
+                      // Find the product that has this image
+                      const productWithThisImage = filteredProducts.find(
+                        p => p.images && p.images[0] && p.images[0].thumbnail_image === selectedImage
+                      );
+                      
+                      if (productWithThisImage && productWithThisImage.product_id) {
+                        setSelectedImage(null); // Close image modal
+                        handleViewProduct(productWithThisImage.product_id);
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    View Full Product Details
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* Product Details Modal */}
-        {selectedProduct && (
+        {selectedProduct ? (
           <ProductDetailsModal 
             product={selectedProduct} 
-            onClose={() => setSelectedProduct(null)} 
+            onClose={() => {
+              setSelectedProduct(null);
+            }} 
           />
-        )}
+        ) : productDetailsLoading ? (
+          // Loading indicator for product details
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-lg p-6 flex items-center space-x-4">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-700 font-medium">Loading product details...</p>
+            </div>
+          </div>
+        ) : null}
 
     </div>
   );
