@@ -7,7 +7,7 @@ import S3Image from '../../../components/S3Image';
 import { getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-
+import DOMPurify from 'dompurify';
 // Product Details Modal Component
 const ProductDetailsModal = ({ product, onClose }) => {
  
@@ -50,9 +50,7 @@ const ProductDetailsModal = ({ product, onClose }) => {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600">
-                  {product.descriptions?.[0]?.description || 'No description available'}
-                </p>
+                
               </div>
               
               {/* Product Images */}
@@ -144,7 +142,15 @@ const ProductDetailsModal = ({ product, onClose }) => {
                   </div>
                 </div>
               )}
-              
+
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+              <p
+                className="text-sm text-gray-600"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(product.descriptions?.[0]?.description || 'No description available'),
+                }}
+              ></p>
+              </div>
 
             </div>
           </div>
