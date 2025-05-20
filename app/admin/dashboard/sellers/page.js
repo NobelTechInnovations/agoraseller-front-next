@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Map as MapIcon } from '@mui/icons-material';
 import axiosInstance from '../../../utils/axios';
 
 export default function SellersPage() {
@@ -96,18 +96,35 @@ export default function SellersPage() {
 
   return (
     <Box className="p-6">
-      <Typography
-        variant="h5"
-        className="mb-6 font-semibold"
-        sx={{
-          background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-        }}
-      >
-        Sellers Management
-      </Typography>
+      <Box className="flex items-center justify-between mb-6">
+        <Typography
+          variant="h5"
+          className="font-semibold"
+          sx={{
+            background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Sellers Management
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<MapIcon />}
+          onClick={() => router.push('/admin/dashboard/sellers/map')}
+          sx={{
+            borderColor: 'rgba(43, 88, 118, 0.5)',
+            color: '#2b5876',
+            '&:hover': {
+              borderColor: '#2b5876',
+              backgroundColor: 'rgba(43, 88, 118, 0.04)',
+            },
+          }}
+        >
+          Serviceable Zone
+        </Button>
+      </Box>
       
       <Paper elevation={0} className="overflow-hidden border border-gray-100">
         <TableContainer>
@@ -119,7 +136,7 @@ export default function SellersPage() {
                 <TableCell>Phone</TableCell>
                 <TableCell>Location</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Profile</TableCell>
+                
                 <TableCell>Joined Date</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -130,7 +147,7 @@ export default function SellersPage() {
                   <TableCell>{seller.name}</TableCell>
                   <TableCell>{seller.email}</TableCell>
                   <TableCell>{seller.phone}</TableCell>
-                  <TableCell>{`${seller.business_address} - ${seller.pincode}`}</TableCell>
+                  <TableCell>{`${seller.business_address.split(' ').slice(0, 7).join(' ')} - ${seller.pincode}`}</TableCell>
                   <TableCell>
                     <Chip
                       label={seller.status}
@@ -138,13 +155,7 @@ export default function SellersPage() {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={seller.profile_complete ? 'Complete' : 'Incomplete'}
-                      color={seller.profile_complete ? 'success' : 'warning'}
-                      size="small"
-                    />
-                  </TableCell>
+                  
                   <TableCell>
                     {new Date(seller.createdAt).toLocaleDateString()}
                   </TableCell>

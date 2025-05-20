@@ -149,21 +149,6 @@ export default function SellerDetailsPage({ params }) {
           Back to Sellers
         </Button>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="outlined"
-            startIcon={<MapIcon />}
-            onClick={handleViewServiceableZone}
-            sx={{
-              borderColor: 'rgba(43, 88, 118, 0.5)',
-              color: '#2b5876',
-              '&:hover': {
-                borderColor: '#2b5876',
-                backgroundColor: 'rgba(43, 88, 118, 0.04)',
-              },
-            }}
-          >
-            Serviceable Zone
-          </Button>
           <Chip
             label={seller.status}
             color={getStatusColor(seller.status)}
