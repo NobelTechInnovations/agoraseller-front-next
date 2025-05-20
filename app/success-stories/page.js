@@ -8,11 +8,11 @@ import Header from "../components/Header";
 
 export default function SuccessStoriesPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header with gradient and improved navigation */}
-      <Header />
+      <Header onLoginClick={() => setIsLoginOpen(true)} />
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -139,6 +139,73 @@ export default function SuccessStoriesPage() {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      {isLoginOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity z-40" onClick={() => setIsLoginOpen(false)}></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 pointer-events-auto shadow-2xl transform transition-all">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Seller Login</h2>
+                <button
+                  onClick={() => setIsLoginOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 rounded-full p-1 hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Enter 10-15 digit number"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    <button
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-gray-400 text-white rounded-md font-medium transition-colors text-sm"
+                    >
+                      Send OTP
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  className="w-full p-3 bg-gray-400 text-white rounded-md font-medium transition-colors"
+                  disabled
+                >
+                  Continue
+                </button>
+
+                <p className="text-xs text-center text-gray-600">
+                  By continuing, you agree to our{" "}
+                  <Link href="#" className="text-primary hover:underline">Terms & Conditions</Link>
+                  {" "}and{" "}
+                  <Link href="#" className="text-primary hover:underline">Privacy Policy</Link>
+                </p>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <p className="text-sm text-center text-gray-600">
+                  New to Geniezy?{" "}
+                  <Link
+                    href="/seller/register"
+                    className="text-primary font-medium hover:underline"
+                    onClick={() => setIsLoginOpen(false)}
+                  >
+                    Register as a Seller
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 } 

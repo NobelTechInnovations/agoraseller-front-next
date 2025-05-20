@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function Header() {
+export default function Header({ onLoginClick }) {
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -34,7 +35,7 @@ export default function Header() {
         </div>
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => setIsLoginOpen(true)}
+            onClick={onLoginClick}
             className="text-white hover:text-white/80 font-medium"
           >
             Login
