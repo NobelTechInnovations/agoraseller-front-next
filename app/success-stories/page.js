@@ -87,7 +87,7 @@ export default function SuccessStoriesPage() {
               name: "Vikram Singh",
               business: "Electronics",
               image: "https://static-00.iconduck.com/assets.00/person-icon-512x483-d7q8hqj4.png",
-              text: "The reach that Geniezy provides is incredible. I'm getting orders from places I never imagined I could sell to.",
+              text: "The reach that Geniezy provides is incredible. I&apos;m getting orders from places I never imagined I could sell to.",
             },
           ].map((t) => (
             <div key={t.id} className="bg-white shadow-xl rounded-xl p-6 flex flex-col items-center border border-gray-200 hover:shadow-2xl transition-all hover:border-primary/20 relative overflow-hidden group">

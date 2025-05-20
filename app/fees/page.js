@@ -32,7 +32,7 @@ export default function FeesPage() {
             <div className="w-full md:w-3/4 p-6">
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-3/5">
-                  <p className="text-gray-700 mb-4">At Geniezy Seller, we prioritize timely payments. That's why we designed our payment cycle to be quick and convenient for our sellers.</p>
+                  <p className="text-gray-700 mb-4">At Geniezy Seller, we prioritize timely payments. That&apos;s why we designed our payment cycle to be quick and convenient for our sellers.</p>
                   <p className="text-gray-700 mb-4">As a seller, your product payment will be processed as soon as an order is delivered to your customer and payment is reflected in Geniezy. Typically, you will then receive your payment in your account within 7 days.</p>
                   <p className="text-gray-700">Happy sellers are exactly what Geniezy Seller is about!</p>
                   <div className="mt-4 bg-blue-50 p-3 rounded shadow-inner">
@@ -94,13 +94,13 @@ export default function FeesPage() {
               <h3 className="text-xl font-bold text-gray-800">Fee Type</h3>
             </div>
             <div className="bg-blue-50 p-4 rounded mb-6 shadow-inner">
-              <p className="text-gray-700 mb-2">Three types of fees you'll pay to trade doing with Geniezy's seller-friendly fee calculator.</p>
-              <p className="text-gray-700">Geniezy is committed to Geniezy, but they charge only based on the category of products you sell. We believe merchants should come heavy handing back on your strategy, to ensure their own report and management control systems. It's always a good idea to get familiar with Geniezy's fees.</p>
+              <p className="text-gray-700 mb-2">Three types of fees you&apos;ll pay to trade doing with Geniezy&apos;s seller-friendly fee calculator.</p>
+              <p className="text-gray-700">Geniezy is committed to Geniezy, but they charge only based on the category of products you sell. We believe merchants should come heavy handing back on your strategy, to ensure their own report and management control systems. It&apos;s always a good idea to get familiar with Geniezy&apos;s fees.</p>
             </div>
             
             <div className="mb-6 p-4 border-l-4 border-primary bg-white rounded-r-lg shadow-sm">
               <h4 className="text-lg font-semibold text-gray-800 mb-2">Fixed Fee (Platform Opportunity)</h4>
-              <p className="text-gray-700 mb-4">As a simple formula, a fixed fee is inserted to your order set with the Geniezy Platform being charges as a kind of a premium to be visible to the market. In the case it's like a fixed model where the fees will be charged based on the specific percentage of the order.</p>
+              <p className="text-gray-700 mb-4">As a simple formula, a fixed fee is inserted to your order set with the Geniezy Platform being charges as a kind of a premium to be visible to the market. In the case it&apos;s like a fixed model where the fees will be charged based on the specific percentage of the order.</p>
               <p className="text-gray-700 mb-4">These fixed charges provide opportunities for sellers. By claiming being a fixed platform for their fees, many large merchants come to service their product portfolios, companies to write-ups selling across India scale merchants and more businesses.</p>
             </div>
 
@@ -141,7 +141,7 @@ export default function FeesPage() {
 
             <div className="mt-8">
               <h4 className="text-lg font-semibold text-gray-800 mb-2 p-4 border-l-4 border-primary bg-white rounded-r-lg shadow-sm">Commission Fee (Category)</h4>
-              <p className="text-gray-700 mb-4 mt-4">It's a percentage that of a commission service charge applied to the total selling price of any product sold on our platform. This commission fee is tray-shaped. This platform calculates commission based on the categories of your product by Geniezy as PMS category. connecting the product to a public.</p>
+              <p className="text-gray-700 mb-4 mt-4">It&apos;s a percentage that of a commission service charge applied to the total selling price of any product sold on our platform. This commission fee is tray-shaped. This platform calculates commission based on the categories of your product by Geniezy as PMS category. connecting the product to a public.</p>
               <p className="text-gray-700 mb-4">At Geniezy you can easily increase your speculation about a week. As the commissions change, the value of your service increases and your results start to look better. The fees on Geniezy change from time to time with the fixed fee. A seller may be subjected to the pre-stipulated commission rates on contents in the period mentioned.</p>
             </div>
 
@@ -241,7 +241,7 @@ export default function FeesPage() {
         <div className="bg-white shadow-xl rounded-lg mb-12 overflow-hidden border border-gray-200 transition-shadow hover:shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-400"></div>
           <div className="p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-6">Let's understand with an example:</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-6">Let&apos;s understand with an example:</h3>
             
             <p className="text-gray-700 mb-4">Suppose you want to sell a product worth ₹1000 (excluding shipping) What to you as a potential fulfillment mode, the cost to set your product in Market is this computation:</p>
             
@@ -250,7 +250,7 @@ export default function FeesPage() {
                 <p className="font-medium">Step 1 - Consider Selling Price</p>
               </div>
               <p className="text-gray-700 mb-4">The selling price of the product is ₹1000 (which incl. 18% to ₹169/color) No revenue confusion, just simple selling on our calculation:</p>
-              <p className="text-gray-700 mb-4">So, we take the subtotal price of the listed product as the fixed price and choose pricing less fixed price. The price of the product before is 844 prices. You're paying only GST.</p>
+              <p className="text-gray-700 mb-4">So, we take the subtotal price of the listed product as the fixed price and choose pricing less fixed price. The price of the product before is 844 prices. You&apos;re paying only GST.</p>
             </div>
 
             <div className="mt-6">
@@ -279,7 +279,7 @@ export default function FeesPage() {
 
             <div className="mt-6 bg-blue-50 p-4 rounded shadow-inner">
               <p className="text-gray-700">Geniezy has the most committed team of global experts who strive to make business priorities digital commerce more accessible to businesses. Our competitive fees ensure all sellers can access a quicker selection from our marketplace, perfect business ecosystem intelligence.</p>
-              <p className="text-gray-700 mt-2">Over 500 businesses and 2 million customers later, we're transforming how online retail happens in India by providing your business access to control mode of audience. Unlock maximum earnings with us, to add our success story to your case, reach out to us today at your dedicated account manager or call 1800-572-4450. Sales will address your concern in no time.</p>
+              <p className="text-gray-700 mt-2">Over 500 businesses and 2 million customers later, we&apos;re transforming how online retail happens in India by providing your business access to control mode of audience. Unlock maximum earnings with us, to add our success story to your case, reach out to us today at your dedicated account manager or call 1800-572-4450. Sales will address your concern in no time.</p>
             </div>
           </div>
         </div>
