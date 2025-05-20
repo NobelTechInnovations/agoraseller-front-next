@@ -25,6 +25,7 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckCircleIcon,
   Block as BlockIcon,
+  Map as MapIcon,
 } from '@mui/icons-material';
 import axiosInstance from '../../../../utils/axios';
 
@@ -95,6 +96,10 @@ export default function SellerDetailsPage({ params }) {
     }
   };
 
+  const handleViewServiceableZone = () => {
+    router.push(`/admin/dashboard/sellers/${sellerId}/zone`);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active':
@@ -144,6 +149,21 @@ export default function SellerDetailsPage({ params }) {
           Back to Sellers
         </Button>
         <Stack direction="row" spacing={2} alignItems="center">
+          <Button
+            variant="outlined"
+            startIcon={<MapIcon />}
+            onClick={handleViewServiceableZone}
+            sx={{
+              borderColor: 'rgba(43, 88, 118, 0.5)',
+              color: '#2b5876',
+              '&:hover': {
+                borderColor: '#2b5876',
+                backgroundColor: 'rgba(43, 88, 118, 0.04)',
+              },
+            }}
+          >
+            Serviceable Zone
+          </Button>
           <Chip
             label={seller.status}
             color={getStatusColor(seller.status)}
