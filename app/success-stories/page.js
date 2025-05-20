@@ -47,7 +47,8 @@ export default function SuccessStoriesPage() {
               <FaQuoteLeft className="text-primary/10 text-6xl absolute top-4 left-4" />
               <div className="relative">
                 <p className="text-gray-700 mb-4 pl-6 pt-4 text-lg italic">
-                  "I joined Geniezy in 2018, and leveraged their superior logistics network. Starting small business, we now generate R₹2,000 lac+ a year from overseas, with stellar marketplace support."
+                &quot;I joined Geniezy in 2018, and leveraged their superior logistics network. Starting small business, 
+                we now generate R₹2,000 lac+ a year from overseas, with stellar marketplace support.&quot;
                 </p>
               </div>
               
