@@ -39,6 +39,7 @@ import {
   Search as SearchIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../../../utils/axios';
@@ -69,6 +70,8 @@ export default function AttributesPage() {
     pages: 0
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [matchingAttributes, setMatchingAttributes] = useState([]);
+  const [searchingMatches, setSearchingMatches] = useState(false);
 
   const fetchAttributes = async (page = 1, search = '') => {
     setLoading(true);
@@ -128,6 +131,41 @@ export default function AttributesPage() {
     }
   }, [currentPage]);
 
+  // New function to search all attributes without pagination
+  const searchAllAttributes = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setMatchingAttributes([]);
+      return;
+    }
+    
+    setSearchingMatches(true);
+    try {
+      const response = await axiosInstance.get(`/v1/admin/attribute/list?search=${encodeURIComponent(searchTerm)}&limit=1000`);
+      if (response.data.success) {
+        // Filter to only include attributes with names similar to the search term
+        const searchTermLower = searchTerm.toLowerCase();
+        const similarAttributes = response.data.data.attributes.filter(attr => 
+          attr.name.toLowerCase().includes(searchTermLower) ||
+          searchTermLower.includes(attr.name.toLowerCase())
+        );
+        setMatchingAttributes(similarAttributes);
+      }
+    } catch (error) {
+      console.error('Error searching all attributes:', error);
+      setMatchingAttributes([]);
+    } finally {
+      setSearchingMatches(false);
+    }
+  };
+
+  // Debounce the all-attributes search to prevent too many API calls
+  const debouncedAllSearch = useCallback(
+    debounce((search) => {
+      searchAllAttributes(search);
+    }, 300),
+    []
+  );
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
@@ -162,6 +200,15 @@ export default function AttributesPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    
+    // When typing in the name field, check for existing attributes
+    if (name === 'name') {
+      if (value.trim()) {
+        debouncedAllSearch(value);
+      } else {
+        setMatchingAttributes([]);
+      }
+    }
   };
 
   const handleAddValue = async (attributeId) => {
@@ -434,6 +481,43 @@ export default function AttributesPage() {
               sx={{ mb: 2 }}
               required
             />
+            
+            {searchingMatches && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <CircularProgress size={20} />
+              </Box>
+            )}
+            
+            {matchingAttributes.length > 0 && newAttribute.name.trim() !== '' && !searchingMatches && (
+              <Alert 
+                severity="warning" 
+                sx={{ mb: 2 }}
+                icon={<WarningIcon />}
+              >
+                <Typography variant="body2">
+                  Similar attributes found:
+                </Typography>
+                <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {matchingAttributes.slice(0, 5).map(attr => (
+                    <Chip 
+                      key={attr._id} 
+                      label={attr.name} 
+                      size="small" 
+                      color="warning"
+                      sx={{ borderRadius: 1 }}
+                    />
+                  ))}
+                  {matchingAttributes.length > 5 && (
+                    <Chip 
+                      label={`+${matchingAttributes.length - 5} more`} 
+                      size="small"
+                      sx={{ borderRadius: 1 }}
+                    />
+                  )}
+                </Box>
+              </Alert>
+            )}
+            
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Required</InputLabel>
               <Select

@@ -17,13 +17,7 @@ export default function Header({ onLoginClick }) {
       <div className="flex justify-between items-center py-4">
         <div className="flex items-center">
           <Link href="/" className="flex items-center">
-            {/* <img 
-              src="https://mma.prnewswire.com/media/2409431/Agora_Logo_Logo.jpg?p=facebook" 
-              alt="Agora Seller Hub Logo" 
-              width={40} 
-              height={40}
-              className="mr-2"
-            /> */}
+          
             <span className="text-xl font-bold text-white"> Seller Hub <span className="text-xs text-secondary ">by Geniezy</span></span>
           </Link>
           <nav className="hidden md:flex space-x-8 ml-12">

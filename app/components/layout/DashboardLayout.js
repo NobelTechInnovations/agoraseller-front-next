@@ -184,13 +184,14 @@ export default function DashboardLayout({ children }) {
               <div className="flex items-center gap-4">
                 {/* Store Name */}
                 <div className="flex items-center gap-2">
+                  <Link href="/store-manage">
                   <img
-                    src="https://mma.prnewswire.com/media/2409431/Geniezy_Logo_Logo.jpg?p=facebook"
+                    src="/logo2.png"
                     alt="logo"
                     width={120}
                     height={50}
                   />
-
+                  </Link>
                   <div className="flex items-center gap-2 border border-gray-200 bg-gray-100 p-2 rounded-md">
                     <h4 className="text-xs font-semibold text-gray-800">{businessName || 'Unknown'}</h4>
                     {/* <span className="text-xs text-dark py-0.5 rounded-sm">| Jaipur</span> */}
