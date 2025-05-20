@@ -16,6 +16,9 @@ export default function BusinessDetailsPage() {
   const [documentNumber, setDocumentNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   
   useEffect(() => {
     // Check if token exists and is valid
@@ -70,38 +73,83 @@ export default function BusinessDetailsPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleGetLocation = async () => {
+    setIsLoadingLocation(true);
+    setErrors((prev) => ({ ...prev, location: null }));
+
+    try {
+      // Get current position using browser's geolocation API
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      const { latitude, longitude } = position.coords;
+      setLatitude(latitude);
+      setLongitude(longitude);
+
+      // Use Google Geocoding API to get address details
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.status === "OK" && data.results[0]) {
+        const addressComponents = data.results[0].address_components;
+        const formattedAddress = data.results[0].formatted_address;
+        
+        // Find postal code from address components
+        const postalCode = addressComponents.find(
+          component => component.types.includes("postal_code")
+        );
+        
+        setBusinessAddress(formattedAddress);
+        if (postalCode) {
+          setPincode(postalCode.long_name);
+        }
+      }
+    } catch (error) {
+      console.error("Error getting location:", error);
+      setErrors((prev) => ({
+        ...prev,
+        location: "Failed to get location. Please ensure location access is enabled."
+      }));
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
   const handleContinue = async () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
     
     try {
-      // Get authentication token
       const authData = JSON.parse(localStorage.getItem('sellerAuth'));
       
-      // Prepare the request payload
       const payload = {
         business_name: businessName,
         business_address: businessAddress,
         pincode: pincode,
-        country: "IN", // Hidden default value
-        currency: "INR", // Hidden default value
-        language: "en", // Hidden default value
+        country: "IN",
+        currency: "INR",
+        language: "en",
+        location: {
+          type: 'Point',
+          coordinates: [longitude, latitude] // GeoJSON requires this order
+        },
         documents: {}
       };
       
-      // Add the appropriate document type
       if (documentType === "pan") {
         payload.documents.pan = documentNumber;
       } else {
         payload.documents.tax_id = documentNumber;
       }
       
-      // Make the API call using the service
       const data = await completeBusinessProfile(payload, authData.token);
       
       if (data.success) {
-        // Navigate to the bank details page
         router.push("/onboarding/bank-details");
       } else {
         setErrors({ api: data.message || "Failed to save business details. Please try again." });
@@ -159,15 +207,32 @@ export default function BusinessDetailsPage() {
                 <label htmlFor="business-address" className="block text-xs font-medium text-gray-700 mb-1">
                   Business Address*
                 </label>
-                <textarea
-                  id="business-address"
-                  value={businessAddress}
-                  onChange={(e) => setBusinessAddress(e.target.value)}
-                  placeholder="Enter your business address"
-                  rows="3"
-                  className={`w-full p-2 border ${errors.businessAddress ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
-                />
+                <div className="space-y-2">
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={isLoadingLocation}
+                      className="px-3 py-1.5 bg-[#6800cd] text-white text-xs rounded-md hover:bg-[#5400a3] disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {isLoadingLocation ? 'Getting Location...' : 'Get Current Location'}
+                    </button>
+                  </div>
+                  <textarea
+                    id="business-address"
+                    value={businessAddress}
+                    onChange={(e) => setBusinessAddress(e.target.value)}
+                    placeholder="Enter your business address"
+                    rows="3"
+                    className={`w-full p-2 border ${errors.businessAddress ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-[#6800cd] focus:border-transparent text-sm`}
+                  />
+                </div>
                 {errors.businessAddress && <p className="mt-1 text-xs text-red-600">{errors.businessAddress}</p>}
+                {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location}</p>}
               </div>
 
               {/* Pincode */}
