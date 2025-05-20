@@ -88,7 +88,7 @@ export default function AdminLayout({ children }) {
       >
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
-            Agora Admin
+            Geniezy Admin
           </Typography>
           <IconButton
             onClick={() => setOpen(!open)}

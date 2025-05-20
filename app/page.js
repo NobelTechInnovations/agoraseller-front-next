@@ -11,6 +11,7 @@ import { getSession } from 'next-auth/react';
 import { FaStore, FaChartLine, FaRupeeSign, FaShieldAlt, FaPercentage, FaTruck } from 'react-icons/fa';
 import { BsCashStack, BsPhone } from 'react-icons/bs';
 import { MdSupportAgent } from 'react-icons/md';
+import Header from "./components/Header";
 
 export default function Home() {
   const router = useRouter();
@@ -31,21 +32,21 @@ export default function Home() {
       name: "Rajesh Kumar",
       business: "Fashion Store",
       image: "https://static-00.iconduck.com/assets.00/person-icon-512x483-d7q8hqj4.png",
-      text: "Joining Agora was the best business decision I made. My sales have increased by 300% in just 6 months!",
+      text: "Joining Geniezy was the best business decision I made. My sales have increased by 300% in just 6 months!",
     },
     {
       id: 2,
       name: "Priya Sharma",
       business: "Home Decor",
       image: "https://static-00.iconduck.com/assets.00/person-icon-512x483-d7q8hqj4.png",
-      text: "The seller tools provided by Agora make managing my business so much easier. The payments are always on time.",
+      text: "The seller tools provided by Geniezy make managing my business so much easier. The payments are always on time.",
     },
     {
       id: 3,
       name: "Vikram Singh",
       business: "Electronics",
       image: "https://static-00.iconduck.com/assets.00/person-icon-512x483-d7q8hqj4.png",
-      text: "The reach that Agora provides is incredible. I&apos;m getting orders from places I never imagined I could sell to.",
+      text: "The reach that Geniezy provides is incredible. I&apos;m getting orders from places I never imagined I could sell to.",
     },
   ];
 
@@ -135,44 +136,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header with gradient and improved navigation */}
-      <header className="bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                {/* <img 
-                  src="https://mma.prnewswire.com/media/2409431/Agora_Logo_Logo.jpg?p=facebook" 
-                  alt="Agora Seller Hub Logo" 
-                  width={40} 
-                  height={40}
-                  className="mr-2"
-                /> */}
-                <span className="text-xl font-bold text-white">AgoraSeller Hub</span>
-              </Link>
-              <nav className="hidden md:flex space-x-8 ml-12">
-                <Link href="/learn" className="text-white/90 hover:text-white transition-colors">Learn</Link>
-                <Link href="/fees" className="text-white/90 hover:text-white transition-colors">Fees & Commission</Link>
-                <Link href="/grow" className="text-white/90 hover:text-white transition-colors">Grow with Us</Link>
-                <Link href="/success-stories" className="text-white/90 hover:text-white transition-colors">Success Stories</Link>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setIsLoginOpen(true)}
-                className="text-white hover:text-white/80 font-medium"
-              >
-                Login
-              </button>
-              <Link
-                href="/seller/login"
-                className="bg-white text-primary px-5 py-2 rounded-md hover:bg-gray-100 transition-colors font-bold"
-              >
-                Start Selling
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="flex-grow">
@@ -182,7 +146,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-                  Become a Seller on <span className="text-primary">Agora Market</span> and reach 50 Crore+ customers
+                  Become a Seller on <span className="text-primary">Geniezy Market</span> and reach 50 Crore+ customers
                 </h1>
                 <p className="text-lg text-gray-600">
                   Join India&apos;s fastest growing e-commerce platform and transform your business today.
@@ -242,7 +206,7 @@ export default function Home() {
               <div className="relative hidden md:block">
                 <Image 
                   src="/main_img.png" 
-                  alt="Agora Seller Success" 
+                  alt="Geniezy Seller Success" 
                   width={600} 
                   height={500}
                   className="rounded-lg shadow-xl object-cover"
@@ -273,9 +237,9 @@ export default function Home() {
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Sell on Agora?</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Sell on Geniezy?</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Join thousands of businesses that have transformed their growth story with Agora
+                Join thousands of businesses that have transformed their growth story with Geniezy
               </p>
             </div>
             
@@ -317,7 +281,7 @@ export default function Home() {
         <section className="py-20 bg-[#f4f7ff]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How to Start Selling on Agora</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How to Start Selling on Geniezy</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Follow these simple steps to launch your online business
               </p>
@@ -372,7 +336,7 @@ export default function Home() {
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Seller Success Stories</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Hear from sellers who transformed their business with Agora
+                Hear from sellers who transformed their business with Geniezy
               </p>
             </div>
             
@@ -501,7 +465,7 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Start Selling?</h2>
             <p className="text-xl text-white/90 max-w-3xl mx-auto mb-10">
-              Join thousands of successful sellers on Agora and take your business to the next level
+              Join thousands of successful sellers on Geniezy and take your business to the next level
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
@@ -526,7 +490,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-lg font-bold mb-4">AgoraSeller Hub</h3>
+              <h3 className="text-lg font-bold mb-4">GeniezySeller Hub</h3>
               <p className="text-gray-400 mb-4">
                 Your gateway to online selling success in India&apos;s fastest growing marketplace.
               </p>
@@ -598,7 +562,7 @@ export default function Home() {
           </div>
           <div className="border-t border-gray-800 mt-10 pt-8 text-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Agora Market. All rights reserved.
+              © {new Date().getFullYear()} Geniezy Market. All rights reserved.
             </p>
           </div>
         </div>
@@ -707,7 +671,7 @@ export default function Home() {
               
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <p className="text-sm text-center text-gray-600">
-                  New to Agora?{" "}
+                  New to Geniezy?{" "}
                   <Link
                     href="/seller/register"
                     className="text-primary font-medium hover:underline"

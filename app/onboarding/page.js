@@ -120,7 +120,7 @@ function OnboardingContent() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnAgora</h1>
+            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnGeniezy</h1>
           </div>
 
           {/* Progress Steps */}
@@ -214,7 +214,7 @@ function OnboardingContent() {
       <div className="hidden md:block md:w-2/5 bg-[#f5eeff]">
         <div className="h-full flex flex-col justify-center items-center p-6">
           <div className="max-w-md">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Why sell on Agora Market?</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Why sell on Geniezy Market?</h2>
 
             <div className="space-y-4">
               <div className="flex items-start">
@@ -225,7 +225,7 @@ function OnboardingContent() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-800 mb-1">No commission selling</h3>
-                  <p className="text-xs text-gray-600">Sell your products without paying any commission on Agora Market</p>
+                  <p className="text-xs text-gray-600">Sell your products without paying any commission on Geniezy Market</p>
                 </div>
               </div>
 
@@ -269,7 +269,7 @@ function OnboardingContent() {
             <div className="mt-6">
               <Image
                 src="/sellingbenefits.png"
-                alt="Benefits of selling on Agora"
+                alt="Benefits of selling on Geniezy"
                 width={350}
                 height={200}
                 className="object-contain"

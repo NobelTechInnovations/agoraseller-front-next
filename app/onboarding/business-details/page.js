@@ -121,7 +121,7 @@ export default function BusinessDetailsPage() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnAgora</h1>
+            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnGeniezy</h1>
           </div>
 
           {/* Progress Steps */}
@@ -272,7 +272,7 @@ export default function BusinessDetailsPage() {
             <div className="space-y-4">
               <div className="bg-white rounded-lg p-3 shadow-sm">
                 <h3 className="text-sm font-medium text-gray-800 mb-2">Why we need your business details</h3>
-                <p className="text-xs text-gray-600 mb-2">Your business information helps us verify your identity and provide a secure selling environment on Agora Market.</p>
+                <p className="text-xs text-gray-600 mb-2">Your business information helps us verify your identity and provide a secure selling environment on Geniezy Market.</p>
                 <ul className="space-y-1 text-xs text-gray-600 list-disc list-inside">
                   <li>All information is securely stored</li>
                   <li>Verification is usually completed within 24 hours</li>

@@ -64,7 +64,7 @@ export default function Home() {
 
     try {
       const data = await verifyOTP(phoneNumber, otp);
-      const secretKey = "24_agora_secret"; // keep it hidden
+      const secretKey = "24_geniezy_secret"; // keep it hidden
       const encryptedPhone = CryptoJS.AES.encrypt(phoneNumber, secretKey).toString();
 
       console.log(data);
@@ -100,11 +100,11 @@ export default function Home() {
       <div className="w-full md:w-1/2 flex flex-col justify-center items-center p-6 md:p-12">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#6800cd]">SellOnAgora</h1>
+            <h1 className="text-3xl font-bold text-[#6800cd]">Geniezy Seller Hub</h1>
           </div>
           
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-black">Welcome to Agora Market</h2>
+            <h2 className="text-2xl font-semibold text-black">Welcome to Geniezy Marketplace</h2>
             <p className="text-gray-600 mt-1">Create your account to start selling</p>
           </div>
 
@@ -197,7 +197,7 @@ export default function Home() {
       <div className="w-full md:w-1/2 bg-gray-50 p-6 md:p-12 flex flex-col justify-center">
         <div className="max-w-lg mx-auto">
           <h2 className="text-lg md:text-xl font-semibold text-black mb-6">
-            Grow your business faster by selling on Agora Market
+            Grow your business faster by selling on Geniezy Marketplace
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -252,7 +252,7 @@ export default function Home() {
           </div>
 
           <div className="mt-12">
-            <h3 className="text-base font-semibold text-black mb-3">All you need to sell on SellOnAgora is:</h3>
+            <h3 className="text-base font-semibold text-black mb-3">All you need to sell on Geniezy Marketplace is:</h3>
             
             <div className="space-y-4">
               <div className="flex items-center">

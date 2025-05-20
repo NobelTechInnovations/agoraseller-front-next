@@ -109,9 +109,9 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      {/* AgoraSeller branding */}
+      {/* GeniezySeller branding */}
       <div className="p-4 mt-auto border-t border-gray-700 flex items-center justify-center text-gray-400 text-xs">
-        <span className="font-medium">AgoraSeller</span>
+        <span className="font-medium">GeniezySeller</span>
         <span className="ml-1 text-[10px]">Supplier Hub</span>
       </div>
     </div>

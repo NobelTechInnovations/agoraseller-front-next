@@ -942,7 +942,7 @@ export default function ProfilePage() {
                           <div>
                             <h4 className="text-sm font-medium text-yellow-800 mb-1">Business Details Can&apos;t Be Changed</h4>
                             <p className="text-sm text-yellow-700">
-                              To update your business details, please contact our support team by raising a ticket or sending an email to support@agoraseller.com
+                              To update your business details, please contact our support team by raising a ticket or sending an email to support@sellerhub.geniezy.com
                             </p>
                           </div>
                         </div>

@@ -91,7 +91,7 @@ export default function DashboardLayout({ children }) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'agora-return-report.csv';
+                a.download = 'geniezy-return-report.csv';
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -123,7 +123,7 @@ export default function DashboardLayout({ children }) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'agora-sales-report.xlsx';
+                a.download = 'Geniezy-sales-report.xlsx';
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -185,7 +185,7 @@ export default function DashboardLayout({ children }) {
                 {/* Store Name */}
                 <div className="flex items-center gap-2">
                   <img
-                    src="https://mma.prnewswire.com/media/2409431/Agora_Logo_Logo.jpg?p=facebook"
+                    src="https://mma.prnewswire.com/media/2409431/Geniezy_Logo_Logo.jpg?p=facebook"
                     alt="logo"
                     width={120}
                     height={50}

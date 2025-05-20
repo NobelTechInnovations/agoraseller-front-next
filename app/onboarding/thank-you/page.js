@@ -45,7 +45,7 @@ export default function ThankYouPage() {
         </div>
         
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Onboarding Complete!</h1>
-        <p className="text-sm text-gray-600 mb-2">Thank you for joining Agora Market. Your seller account is now being set up.</p>
+        <p className="text-sm text-gray-600 mb-2">Thank you for joining Geniezy App. Your seller account is now being set up.</p>
         <p className="text-xs text-purple-600 font-medium mb-6">Redirecting to dashboard in {countdown} seconds...</p>
         
         <div className="bg-[#f5eeff] rounded-lg p-4 mb-6">

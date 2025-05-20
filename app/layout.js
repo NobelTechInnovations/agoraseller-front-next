@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "SellOnAgora - Start Your Selling Journey",
-  description: "Create your account to start selling on Agora. Grow your business faster with our seller platform.",
+  title: "SellOnGeniezy - Start Your Selling Journey",
+  description: "Create your account to start selling on Geniezy. Grow your business faster with our seller platform.",
   themeColor: "#6800cd"
 };
 

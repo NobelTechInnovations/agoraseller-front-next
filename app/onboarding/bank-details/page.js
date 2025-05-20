@@ -109,7 +109,7 @@ export default function BankDetailsPage() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnAgora</h1>
+            <h1 className="text-2xl font-bold text-[#6800cd]">SellOnGeniezy</h1>
           </div>
 
           {/* Progress Steps */}
