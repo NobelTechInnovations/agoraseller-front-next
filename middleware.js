@@ -8,7 +8,7 @@ const PUBLIC_PATHS = [
   '/seller/login',
 ];
 
-const ADMIN_ONLY_PATHS = ['/admin/dashboard', '/admin/dashboard/'];
+const ADMIN_ONLY_PATHS = ['/admin/dashboard', '/admin/dashboard/:path*'];
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
