@@ -56,7 +56,7 @@ export default function SellersMapPage() {
       const intervalId = setInterval(() => {
         console.log('Fetching driver locations...'); // Debug log
         fetchDriverLocations();
-      }, 60000);
+      }, 10000);
 
       // Cleanup interval on component unmount
       return () => {
