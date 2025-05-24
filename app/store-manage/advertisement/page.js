@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 export default function AdvertisementPage() {
   const [activeTab, setActiveTab] = useState('ongoing');
@@ -51,6 +52,7 @@ export default function AdvertisementPage() {
   ];
 
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <div className="p-4 max-w-7xl mx-auto">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6 bg-white rounded-lg border border-gray-200 p-4">
@@ -186,5 +188,6 @@ export default function AdvertisementPage() {
         </div>
       )}
     </div>
+    </Suspense>
   );
 }
