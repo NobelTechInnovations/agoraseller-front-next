@@ -152,7 +152,7 @@ export default function DashboardLayout({ children }) {
                 </svg>
               </button>
               <Link href="/store-manage" className="flex items-center gap-3">
-                <img src="/logo2.png" alt="Seller Hub Logo" className="h-8 w-auto" />
+                <img src="/3.png" alt="Seller Hub Logo" className="h-8 w-auto" />
                 <div className="flex items-center gap-2">
                   <span className="text-xl font-bold text-primary">Seller</span>
                   <span className="text-sm text-gray-600">| {businessName || 'Unknown Store'}</span>
