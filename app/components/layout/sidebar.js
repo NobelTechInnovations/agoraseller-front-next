@@ -57,7 +57,7 @@ const Sidebar = () => {
     },
     {
       name: 'Advertising',
-      href: '/store-manage/advertisement',
+      href: '/store-manage/',
       icon: RiAdvertisementLine
     },
     {
