@@ -44,6 +44,8 @@ import {
 } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import axiosInstance from '../../../utils/axios';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function CategoriesPage() {
   const theme = useTheme();
@@ -71,10 +73,24 @@ export default function CategoriesPage() {
   useEffect(() => {
     fetchCategories();
   }, []);
+  const router = useRouter();
+  const { data: session, status } = useSession({
+
+    required: true,
+    onUnauthenticated() {
+      router.push('/admin/login');
+    },
+  });
 
   const fetchCategories = async () => {
     try {
-      const response = await axiosInstance.get('/v1/admin/category/list');
+      const response = await axiosInstance.get('/v1/admin/category/list',
+        {
+          headers: {
+            'Authorization': `Bearer ${session?.accessToken}`
+          }
+        }
+      );
       if (response.data.success) {
         setCategories(response.data.data.categories);
       }
