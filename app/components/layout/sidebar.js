@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { HiHome } from 'react-icons/hi';
 import { BsListTask, BsBox } from 'react-icons/bs';
 import { MdInventory2, MdPayments } from 'react-icons/md';
@@ -8,6 +9,8 @@ import { TbReportAnalytics } from 'react-icons/tb';
 import { FaHandshake } from 'react-icons/fa';
 
 const Sidebar = () => {
+  const pathname = usePathname();
+
   const navigationLinks = [
     { 
       name: 'Welcome',
@@ -27,8 +30,7 @@ const Sidebar = () => {
     {
       name: 'Orders',
       href: '/store-manage/orders',
-      icon: BsBox,
-      isActive: true
+      icon: BsBox
     },
     {
       name: 'Payments',
@@ -55,19 +57,22 @@ const Sidebar = () => {
   return (
     <aside className="w-24 h-[calc(100vh-64px)] bg-white border-r border-gray-200">
       <nav className="flex flex-col gap-4 py-4">
-        {navigationLinks.map((item, index) => (
-          <Link
-            key={index}
-            href={item.href}
-            className={`flex flex-col items-center justify-center px-2 py-2 text-[11px] font-medium transition-colors text-center
-              ${item.isActive 
-                ? 'text-blue-600' 
-                : 'text-gray-700 hover:text-blue-600'}`}
-          >
-            <item.icon className={`w-4 h-4 mb-1 ${item.isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-            {item.name}
-          </Link>
-        ))}
+        {navigationLinks.map((item, index) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          return (
+            <Link
+              key={index}
+              href={item.href}
+              className={`flex flex-col items-center justify-center px-2 py-2 text-[11px] font-medium transition-colors text-center
+                ${isActive 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'}`}
+            >
+              <item.icon className={`w-4 h-4 mb-1 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+              {item.name}
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );
