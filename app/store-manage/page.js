@@ -6,8 +6,10 @@ import axiosInstance from '../utils/axios';
 import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { getSession } from 'next-auth/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BsTruck , BsBox, BsArrowReturnLeft, BsCashStack,BsCurrencyRupee  } from 'react-icons/bs';
 
 export default function StoreDashboard() {
+
   const [activeTab, setActiveTab] = useState('daily');
   const [dashboardData, setDashboardData] = useState({
     pendingOrders: 0,
@@ -119,10 +121,11 @@ export default function StoreDashboard() {
   };
 
   return (
+
     <div className="p-6 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <div className="mb-8">
-        <h3 className="text-2xl font-semibold text-gray-800">Welcome back, By Jaipuri Legacy</h3>
+        <h3 className="text-2xl font-semibold text-gray-800">Welcome back, User!</h3>
         <p className="text-sm text-gray-600 mt-1">Manage your store, track orders, and grow your business with Agora</p>
       </div>
 
@@ -131,8 +134,8 @@ export default function StoreDashboard() {
         {/* Pending Orders */}
         <Link href="/store-manage/orders" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-blue-600 text-lg">📦</span>
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+            <BsBox className="text-gray-600 text-lg" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Pending Orders</p>
@@ -146,8 +149,8 @@ export default function StoreDashboard() {
         {/* Shipped Orders */}
         <Link href="/store-manage/orders" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-blue-600 text-lg">🚚</span>
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+            <BsTruck className="text-gray-600 text-lg" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Shipped Orders</p>
@@ -161,8 +164,8 @@ export default function StoreDashboard() {
         {/* Return Orders */}
         <Link href="/store-manage/returns" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-red-600 text-lg">↩️</span>
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+            <BsArrowReturnLeft className="text-gray-600 text-lg" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Return Orders</p>
@@ -176,8 +179,8 @@ export default function StoreDashboard() {
         {/* Total Revenue */}
         <Link href="/store-manage/payments" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-green-600 text-lg">💰</span>
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+            <BsCashStack className="text-gray-600 text-lg" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
