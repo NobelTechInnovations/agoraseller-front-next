@@ -149,6 +149,13 @@ export default function SellerDetailsPage({ params }) {
           Back to Sellers
         </Button>
         <Stack direction="row" spacing={2} alignItems="center">
+          <Button
+            variant="contained"
+            onClick={() => router.push(`/admin/dashboard/sellers/${sellerId}/products`)}
+          >
+            View Products
+          </Button>
+
           <Chip
             label={seller.status}
             color={getStatusColor(seller.status)}
