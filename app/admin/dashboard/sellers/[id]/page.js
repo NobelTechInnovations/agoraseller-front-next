@@ -12,6 +12,8 @@ import {
   Divider,
   Stack,
 } from '@mui/material';
+import Link from 'next/link';
+
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -69,7 +71,7 @@ export default function SellerDetailsPage({ params }) {
   const handleApproveAccount = async () => {
     try {
       setActionLoading(true);
-      const response = await axiosInstance.post(`/v1/admin/seller/${sellerId}/approve`);
+      const response = await axiosInstance.get(`/v1/admin/seller/${sellerId}/approve`);
       if (response.data.success) {
         // Refresh seller details to show updated status
         fetchSellerDetails();
@@ -84,7 +86,7 @@ export default function SellerDetailsPage({ params }) {
   const handleBlockAccount = async () => {
     try {
       setActionLoading(true);
-      const response = await axiosInstance.post(`/v1/admin/seller/${sellerId}/block`);
+      const response = await axiosInstance.get(`/v1/admin/seller/${sellerId}/suspend`);
       if (response.data.success) {
         // Refresh seller details to show updated status
         fetchSellerDetails();
@@ -149,6 +151,9 @@ export default function SellerDetailsPage({ params }) {
           Back to Sellers
         </Button>
         <Stack direction="row" spacing={2} alignItems="center">
+
+          <Link href={`/admin/dashboard/sellers/${sellerId}/products`}>View Products</Link>
+
           <Chip
             label={seller.status}
             color={getStatusColor(seller.status)}
