@@ -1,9 +1,5 @@
 import React from 'react';
-import { useRouter } from 'next/router';
-import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useToast } from '@/components/ui/use-toast';
-
+import Link from 'next/link';
 
 export default function InventoryPage() {
     return (
@@ -15,7 +11,7 @@ export default function InventoryPage() {
                     <p className="text-sm text-gray-600">
                         View and manage all products in your inventory.
                     </p>
-                    <Link href="/store-manage/inventory/products" className="text-blue-500 hover:text-blue-600">
+                    <Link href="/store-manage/inventory/listing" className="text-blue-500 hover:text-blue-600">
                         View Products
                     </Link>
                 </div>
