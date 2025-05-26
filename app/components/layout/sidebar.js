@@ -37,7 +37,7 @@ const Sidebar = () => {
     },
     {
       name: 'Inventory',
-      href: '/inventory',
+      href: '/store-manage/inventory',
       icon: MdInventory2
     },
     {
