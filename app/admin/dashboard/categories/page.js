@@ -50,11 +50,13 @@ import { useRouter } from 'next/navigation';
 export default function CategoriesPage() {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [newCategory, setNewCategory] = useState({ 
     name: '', 
     parentCategory: null,
-    thumb: null 
+    thumb: null,
+    imageUrl: ''
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,24 +72,28 @@ export default function CategoriesPage() {
   const [attributesLoading, setAttributesLoading] = useState(false);
   const [mappingLoading, setMappingLoading] = useState(false);
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
   const router = useRouter();
   const { data: session, status } = useSession({
-
     required: true,
     onUnauthenticated() {
       router.push('/admin/login');
     },
   });
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCategories();
+    }
+  }, [status]);
+
   const fetchCategories = async () => {
+    if (!session?.accessToken) return;
+    
     try {
       const response = await axiosInstance.get('/v1/admin/category/list',
         {
           headers: {
-            'Authorization': `Bearer ${session?.accessToken}`
+            'Authorization': `Bearer ${session.accessToken}`
           }
         }
       );
@@ -176,10 +182,65 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleOpen = () => setOpen(true);
+  const handleOpen = (category = null) => {
+    if (category) {
+      setEditMode(true);
+      setNewCategory({
+        _id: category._id,
+        name: category.name,
+        parentCategory: category.parent ? { _id: category.parent, name: getParentCategoryName(category.parent) } : null,
+        thumb: null,
+        imageUrl: category.thumb || ''
+      });
+    } else {
+      setEditMode(false);
+      setNewCategory({ name: '', parentCategory: null, thumb: null, imageUrl: '' });
+    }
+    setOpen(true);
+  };
+
   const handleClose = () => {
     setOpen(false);
-    setNewCategory({ name: '', parentCategory: null, thumb: null });
+    setEditMode(false);
+    setNewCategory({ name: '', parentCategory: null, thumb: null, imageUrl: '' });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewCategory(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setNewCategory(prev => ({
+        ...prev,
+        thumb: e.target.files[0]
+      }));
+    }
+  };
+
+  const handleImageUrlChange = async (e) => {
+    const url = e.target.value;
+    setNewCategory(prev => ({ ...prev, imageUrl: url }));
+    
+    if (url) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const file = new File([blob], 'image.jpg', { type: blob.type });
+        setNewCategory(prev => ({ ...prev, thumb: file }));
+      } catch (error) {
+        console.error('Error fetching image from URL:', error);
+        // Clear the thumb if URL fetch fails
+        setNewCategory(prev => ({ ...prev, thumb: null }));
+      }
+    } else {
+      // Clear the thumb if URL is empty
+      setNewCategory(prev => ({ ...prev, thumb: null }));
+    }
   };
 
   const handleAddCategory = async () => {
@@ -191,18 +252,39 @@ export default function CategoriesPage() {
         if (newCategory.parentCategory) {
           formData.append('parent', newCategory.parentCategory._id);
         }
+        
+        // Handle image upload - either from file or URL
         if (newCategory.thumb) {
           formData.append('thumb', newCategory.thumb);
+        } else if (newCategory.imageUrl && !newCategory.thumb) {
+          // If we have a URL but no file, try to fetch it one more time
+          try {
+            const response = await fetch(newCategory.imageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'image.jpg', { type: blob.type });
+            formData.append('thumb', file);
+          } catch (error) {
+            console.error('Error fetching image from URL:', error);
+          }
         }
 
-        const response = await axiosInstance.post('/v1/admin/category/add', formData);
+        const endpoint = editMode 
+          ? `/v1/admin/category/${newCategory._id}/update`
+          : '/v1/admin/category/add';
+
+        const response = await axiosInstance.post(endpoint, formData, {
+          headers: {
+            'Authorization': `Bearer ${session.accessToken}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
 
         if (response.data.success) {
           fetchCategories();
           handleClose();
         }
       } catch (error) {
-        console.error('Error adding category:', error);
+        console.error('Error saving category:', error);
       } finally {
         setActionLoading(false);
       }
@@ -220,23 +302,6 @@ export default function CategoriesPage() {
       console.error('Error deleting category:', error);
     } finally {
       setDeleteLoadingId(null);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewCategory(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setNewCategory(prev => ({
-        ...prev,
-        thumb: e.target.files[0]
-      }));
     }
   };
 
@@ -312,6 +377,7 @@ export default function CategoriesPage() {
           <IconButton
             size="small"
             sx={{ color: theme.palette.primary.main }}
+            onClick={() => handleOpen(category)}
           >
             <EditIcon />
           </IconButton>
@@ -396,7 +462,7 @@ export default function CategoriesPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={handleOpen}
+          onClick={() => handleOpen()}
           sx={{
             background: 'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
             '&:hover': {
@@ -448,9 +514,11 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Add Category Dialog */}
+      {/* Add/Edit Category Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Add New Category</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          {editMode ? 'Edit Category' : 'Add New Category'}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <TextField
@@ -482,13 +550,25 @@ export default function CategoriesPage() {
                   sx={{ mb: 2 }}
                 />
               )}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  <Typography sx={{ pl: option.level * 2 }}>
-                    {option.name}
-                  </Typography>
-                </li>
-              )}
+              renderOption={(props, option) => {
+                const { key, ...otherProps } = props;
+                return (
+                  <li key={key} {...otherProps}>
+                    <Typography sx={{ pl: option.level * 2 }}>
+                      {option.name}
+                    </Typography>
+                  </li>
+                );
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Image URL"
+              value={newCategory.imageUrl}
+              onChange={handleImageUrlChange}
+              variant="outlined"
+              sx={{ mb: 2 }}
+              placeholder="Enter image URL to upload"
             />
             <Button
               variant="outlined"
@@ -509,6 +589,11 @@ export default function CategoriesPage() {
                 Selected file: {newCategory.thumb.name}
               </Typography>
             )}
+            {newCategory.imageUrl && !newCategory.thumb && (
+              <Typography variant="body2" color="text.secondary">
+                Using image from URL: {newCategory.imageUrl}
+              </Typography>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -526,7 +611,7 @@ export default function CategoriesPage() {
               },
             }}
           >
-            {actionLoading ? 'Adding...' : 'Add Category'}
+            {actionLoading ? 'Saving...' : (editMode ? 'Update Category' : 'Add Category')}
           </Button>
         </DialogActions>
       </Dialog>
