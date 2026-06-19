@@ -28,11 +28,14 @@ import S3Image from '../../../../../components/S3Image';
 
 
 const statusColors = {
-  'draft': 'default',
+  draft: 'default',
   'in-review': 'warning',
-  'approved': 'success',
-  'rejected': 'error',
-  'suspended': 'error',
+  published: 'success',
+  approved: 'success',
+  varification_failed: 'error',
+  rejected: 'error',
+  suspended: 'error',
+  archived: 'default',
 };
 
 export default function SellerProducts() {
@@ -53,7 +56,7 @@ export default function SellerProducts() {
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${session.accessToken}`;
       fetchProducts();
     }
-  }, [sellerId, status, session]);
+  }, [sellerId, status, session?.accessToken]);
 
   const fetchProducts = async () => {
     try {
@@ -129,45 +132,62 @@ export default function SellerProducts() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {products.map((item) => (
-              <TableRow key={item._id} className="hover:bg-gray-50">
-                <TableCell>
-                  {item.product.images[0]?.thumbnail_image && (
-                    <div className="relative w-16 h-16">
-                      
-                      <S3Image 
-                        src={item.product.images[0].thumbnail_image}
-                        alt={item.product.descriptions[0]?.title || 'Product image'}
-                        className="object-cover rounded"
-                        width={64}
-                        height={64}
+            {products.map((item) => {
+                const product = item?.product;
+
+                if (!product) {
+                  return null;
+                }
+
+                return (
+                  <TableRow key={item._id}>
+                    <TableCell>
+                      {product?.images?.[0]?.thumbnail_image && (
+                        <div className="relative w-16 h-16">
+                          <S3Image
+                            src={product.images[0].thumbnail_image}
+                            alt={product?.descriptions?.[0]?.title || "Product"}
+                            className="object-cover rounded"
+                            width={64}
+                            height={64}
+                          />
+                        </div>
+                      )}
+                    </TableCell>
+
+                    <TableCell>{item.product_id}</TableCell>
+
+                    <TableCell>
+                      {product?.descriptions?.[0]?.title || "-"}
+                    </TableCell>
+
+                    <TableCell>
+                      {product?.category_id?.name || "-"}
+                    </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={product?.status || "unknown"}
+                        color={statusColors[product?.status] || "default"}
+                        size="small"
                       />
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{item.product_id}</TableCell>
-                <TableCell>{item.product.descriptions[0]?.title}</TableCell>
-                <TableCell>{item.product.category_id?.name}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={item.product.status}
-                    color={statusColors[item.product.status] || 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {formatDate(item.createdAt)}
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleMenuClick(e, item)}
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                    </TableCell>
+
+                    <TableCell>
+                      {formatDate(item.createdAt)}
+                    </TableCell>
+
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuClick(e, item)}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
         </Table>
       </TableContainer>
